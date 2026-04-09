@@ -1,0 +1,3078 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏋️ Cross Training EPS</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<style>
+:root {
+  --bg:#0d0d14; --bg2:#14141f; --bg3:#1c1c2e;
+  --card:#1e1e2e; --card2:#252538; --border:#2e2e48;
+  --accent:#f7641e; --accent2:#e83d3d; --accent3:#ffa94d;
+  --blue:#4dabf7; --green:#51cf66; --purple:#cc5de8; --yellow:#ffd43b;
+  --text:#e8e8f0; --text2:#9898b8; --text3:#5a5a7a;
+  --radius:14px; --radius-sm:8px;
+  --teacher:#7c3aed;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100%;overflow-x:hidden;padding-bottom:84px}
+input,textarea,select,button{font-family:inherit}
+
+/* ── HEADER ── */
+.app-header{background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid var(--border);padding:13px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px}
+.app-title{font-size:1.05rem;font-weight:700;flex:1}
+.app-title span{color:var(--accent)}
+.header-badge{background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:0.75rem;color:var(--text2);cursor:pointer;transition:.2s;white-space:nowrap}
+.header-badge:hover{border-color:var(--accent);color:var(--accent)}
+.teacher-btn{background:none;border:none;cursor:pointer;font-size:1.2rem;padding:4px 6px;opacity:.5;transition:.2s}
+.teacher-btn:hover{opacity:1}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 4px 7px;background:none;border:none;color:var(--text3);font-size:.58rem;cursor:pointer;transition:.2s;gap:3px}
+.nav-btn .ni{font-size:1.3rem}
+.nav-btn.active{color:var(--accent)}
+.nav-btn.active .ni{filter:drop-shadow(0 0 5px var(--accent))}
+
+/* ── SECTIONS ── */
+.section{display:none;padding:16px}
+.section.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-size:.82rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:var(--radius-sm);border:none;font-size:.9rem;font-weight:600;cursor:pointer;transition:.2s;min-height:46px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;width:100%}
+.btn-secondary{background:var(--card2);border:1px solid var(--border);color:var(--text);width:100%}
+.btn-sm{padding:8px 14px;font-size:.8rem;min-height:36px}
+.btn-outline{background:transparent;border:1px solid var(--accent);color:var(--accent)}
+.btn-green{background:var(--green);color:#0a2010}
+.btn-purple{background:var(--teacher);color:white;width:100%}
+.btn-blue{background:var(--blue);color:#0a1020}
+.btn-sync{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:white;width:100%}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:6px;font-weight:500}
+.form-label .opt{color:var(--text3);font-weight:400;font-size:.72rem;margin-left:4px}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-size:.95rem;outline:none;transition:.2s;-webkit-appearance:none}
+.form-input:focus{border-color:var(--accent)}
+
+/* ── MOBILE CHOICE ── */
+.mobile-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.mobile-card{background:var(--card2);border:2px solid var(--border);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer;transition:.2s}
+.mobile-card.selected{border-color:var(--accent);background:rgba(247,100,30,.1)}
+.mobile-card .me{font-size:2rem;margin-bottom:6px}
+.mobile-card .mn{font-weight:700;font-size:.85rem}
+.mobile-card .md{font-size:.7rem;color:var(--text2);margin-top:3px;line-height:1.3}
+
+/* ── SKILLS ── */
+.family-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.family-tabs::-webkit-scrollbar{display:none}
+.family-tab{white-space:nowrap;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:.8rem;font-weight:600;cursor:pointer;transition:.2s}
+.family-tab.active{background:var(--accent);color:white;border-color:var(--accent)}
+.skill-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.skill-header{display:flex;align-items:center;padding:13px;gap:11px;cursor:pointer}
+.skill-emoji{font-size:1.5rem}
+.skill-info{flex:1}
+.skill-name{font-weight:700;font-size:.93rem}
+.skill-family-tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.66rem;font-weight:600;margin-top:3px}
+.tag-force{background:rgba(247,100,30,.2);color:var(--accent3)}
+.tag-explosivite{background:rgba(232,61,61,.2);color:#ff8080}
+.tag-cardio{background:rgba(77,171,247,.2);color:var(--blue)}
+.tag-resistance{background:rgba(81,207,102,.2);color:var(--green)}
+.skill-chevron{color:var(--text3);transition:.2s;font-size:.75rem}
+.skill-chevron.open{transform:rotate(90deg)}
+.skill-body{display:none;padding:0 13px 13px;border-top:1px solid var(--border)}
+.skill-body.open{display:block}
+.muscles-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.muscle-tag{padding:3px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:11px;font-size:.7rem;color:var(--text2)}
+.levels-table{width:100%;border-collapse:collapse;font-size:.76rem;margin:7px 0}
+.levels-table th{text-align:left;color:var(--text2);padding:5px 7px;background:var(--bg3)}
+.levels-table td{padding:5px 7px;border-top:1px solid var(--border)}
+.level-badge{display:inline-block;width:19px;height:19px;border-radius:50%;text-align:center;line-height:19px;font-weight:700;font-size:.7rem}
+.lv1{background:var(--green);color:#0a2010}.lv2{background:var(--yellow);color:#2a1a00}
+.lv3{background:var(--accent);color:white}.lv4{background:var(--accent2);color:white}
+.intensity-scale{display:flex;gap:5px;margin:5px 0}
+.scale-btn{flex:1;padding:9px 0;border-radius:7px;border:2px solid var(--border);background:var(--bg3);color:var(--text2);font-weight:700;cursor:pointer;font-size:.83rem}
+.scale-btn.a1{border-color:var(--green);background:rgba(81,207,102,.15);color:var(--green)}
+.scale-btn.a2{border-color:var(--yellow);background:rgba(255,212,59,.15);color:var(--yellow)}
+.scale-btn.a3{border-color:var(--accent3);background:rgba(255,169,77,.15);color:var(--accent3)}
+.scale-btn.a4{border-color:var(--accent);background:rgba(247,100,30,.15);color:var(--accent)}
+.scale-btn.a5{border-color:var(--accent2);background:rgba(232,61,61,.15);color:var(--accent2)}
+
+/* ── FC ── */
+.fc-zone-bar{height:11px;border-radius:6px;background:linear-gradient(90deg,#51cf66 0%,#ffd43b 40%,#ffa94d 65%,#f7641e 80%,#e83d3d 100%);position:relative;margin:7px 0}
+.fc-zone-needle{position:absolute;top:-4px;width:4px;height:20px;background:white;border-radius:2px;transform:translateX(-50%);transition:left .5s;box-shadow:0 0 7px rgba(255,255,255,.6)}
+.fc-zone-labels{display:flex;justify-content:space-between;font-size:.63rem;color:var(--text3);margin-top:3px}
+.fc-zone-display{text-align:center;padding:11px;border-radius:var(--radius-sm);margin-top:9px;font-weight:700}
+.zone-repos{background:rgba(81,207,102,.15);border:1px solid var(--green);color:var(--green)}
+.zone-endurance{background:rgba(255,212,59,.15);border:1px solid var(--yellow);color:var(--yellow)}
+.zone-aerob{background:rgba(255,169,77,.15);border:1px solid var(--accent3);color:var(--accent3)}
+.zone-perf{background:rgba(247,100,30,.15);border:1px solid var(--accent);color:var(--accent)}
+.zone-max{background:rgba(232,61,61,.15);border:1px solid var(--accent2);color:var(--accent2)}
+
+/* ── WOD ── */
+.wod-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.wod-type-btn{padding:11px 6px;border-radius:var(--radius-sm);border:2px solid var(--border);background:var(--card2);color:var(--text2);font-size:.72rem;font-weight:700;cursor:pointer;text-align:center;transition:.2s}
+.wod-type-btn .wtn{font-size:.88rem;display:block;margin-bottom:2px}
+.wod-type-btn.selected{border-color:var(--accent);color:var(--accent);background:rgba(247,100,30,.1)}
+.wod-exercise-slot{background:var(--bg3);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:11px;margin-bottom:7px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:.2s}
+.wod-exercise-slot.filled{border-style:solid;border-color:var(--accent);background:rgba(247,100,30,.05)}
+.slot-number{width:27px;height:27px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;flex-shrink:0}
+.slot-content{flex:1;font-size:.83rem}
+.slot-detail{font-size:.7rem;color:var(--text2);margin-top:2px}
+.slot-remove{color:var(--accent2);font-size:1rem;padding:4px;cursor:pointer}
+.wod-validation{background:var(--card2);border-radius:var(--radius-sm);padding:11px;margin:9px 0}
+.validation-item{display:flex;align-items:center;gap:7px;font-size:.78rem;padding:3px 0}
+.v-ok{color:var(--green)}.v-warn{color:var(--yellow)}.v-err{color:var(--accent2)}
+
+/* ── SESSION ── */
+.session-timer{text-align:center;padding:18px;background:var(--card);border-radius:var(--radius);margin-bottom:11px}
+.timer-display{font-size:3.3rem;font-weight:800;letter-spacing:2px;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.timer-controls{display:flex;gap:9px;margin-top:12px}
+.exercise-tracker{background:var(--card);border-radius:var(--radius);padding:13px;margin-bottom:9px}
+.round-counter{display:flex;align-items:center;gap:11px;margin-top:8px}
+.round-btn{width:41px;height:41px;border-radius:50%;border:none;font-size:1.2rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.round-minus{background:var(--card2);color:var(--accent2);border:1px solid var(--border)}
+.round-plus{background:var(--accent);color:white}
+.round-count{font-size:1.5rem;font-weight:800;flex:1;text-align:center}
+.session-list-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+
+/* ── CHARTS ── */
+.bar-chart{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:flex;align-items:center;gap:7px}
+.bar-label{width:105px;font-size:.72rem;color:var(--text2);flex-shrink:0;text-align:right}
+.bar-track{flex:1;background:var(--bg3);border-radius:4px;height:19px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width 1s;display:flex;align-items:center;padding-left:7px;font-size:.66rem;font-weight:700;color:white;min-width:28px}
+.bar-force{background:linear-gradient(90deg,var(--accent),var(--accent3))}
+.bar-explosivite{background:linear-gradient(90deg,var(--accent2),#ff8080)}
+.bar-cardio{background:linear-gradient(90deg,var(--blue),#74c0fc)}
+.bar-resistance{background:linear-gradient(90deg,var(--green),#8ce99a)}
+.bar-muscle{background:linear-gradient(90deg,var(--purple),#da77f2)}
+
+/* ── PROGRESS STATS ── */
+.progress-stat{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.stat-box{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;text-align:center}
+.stat-value{font-size:1.7rem;font-weight:800;color:var(--accent)}
+.stat-label{font-size:.7rem;color:var(--text2);margin-top:3px}
+.afl-section{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:var(--radius);padding:15px;margin-bottom:11px}
+.afl-title{font-size:.95rem;font-weight:800;margin-bottom:3px}
+.afl-subtitle{font-size:.73rem;color:var(--text2);margin-bottom:11px}
+.score-display{display:flex;align-items:baseline;gap:4px;margin-top:7px}
+.score-num{font-size:2rem;font-weight:800;color:var(--accent)}
+.score-denom{font-size:.9rem;color:var(--text2)}
+
+/* ── SYNC BANNER ── */
+.sync-banner{background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(99,102,241,.15));border:1px solid rgba(99,102,241,.4);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.sync-status{font-size:.75rem;color:var(--text2);margin-top:4px}
+.sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dot-ok{background:var(--green)}.dot-warn{background:var(--yellow)}.dot-off{background:var(--text3)}
+
+/* ── TEACHER SPACE ── */
+.teacher-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9500;align-items:flex-end}
+.teacher-overlay.open{display:flex}
+.teacher-sheet{background:#0f0f1a;border:1px solid var(--teacher);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-height:95vh;overflow-y:auto;padding:0;padding-bottom:env(safe-area-inset-bottom)}
+.teacher-header{background:linear-gradient(135deg,var(--teacher),#4f46e5);padding:16px;display:flex;align-items:center;justify-content:space-between}
+.teacher-header-title{font-size:1rem;font-weight:800;color:white;display:flex;align-items:center;gap:8px}
+.teacher-header-close{background:rgba(255,255,255,.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.9rem}
+.teacher-body{padding:16px}
+.teacher-tab-bar{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.teacher-tab-bar::-webkit-scrollbar{display:none}
+.teacher-tab{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.2s}
+.teacher-tab.active{background:var(--teacher);color:white;border-color:var(--teacher)}
+
+/* Student cards in teacher view */
+.student-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:9px;cursor:pointer;transition:.2s}
+.student-card:hover{border-color:var(--teacher)}
+.student-card-header{display:flex;justify-content:space-between;align-items:flex-start}
+.student-name{font-weight:700;font-size:.95rem}
+.student-class{font-size:.72rem;color:var(--text2);margin-top:2px}
+.student-mobile-badge{padding:2px 9px;border-radius:10px;font-size:.68rem;font-weight:700}
+.mb-sport{background:rgba(247,100,30,.2);color:var(--accent)}
+.mb-endur{background:rgba(77,171,247,.2);color:var(--blue)}
+.mb-none{background:var(--bg3);color:var(--text3)}
+.student-stats{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.st-chip{font-size:.7rem;color:var(--text2);background:var(--bg3);padding:3px 8px;border-radius:8px}
+.sync-time{font-size:.68rem;color:var(--text3);margin-top:5px}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;margin-right:4px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+
+
+
+
+/* ── VALID / NO REP ── */
+.judge-panel{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}
+.judge-btn{padding:16px 8px;border-radius:var(--radius-sm);border:none;font-size:1rem;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:.15s;min-height:70px;letter-spacing:.3px}
+.judge-btn:active{transform:scale(.95)}
+.btn-valid{background:linear-gradient(135deg,#2d6a4f,#40916c);color:white;box-shadow:0 3px 12px rgba(64,145,108,.4)}
+.btn-norep{background:linear-gradient(135deg,#7f1d1d,#dc2626);color:white;box-shadow:0 3px 12px rgba(220,38,38,.4)}
+.judge-btn .jcount{font-size:1.8rem;font-weight:900;line-height:1}
+.judge-btn .jlabel{font-size:.65rem;opacity:.85}
+.judge-score{display:flex;align-items:center;justify-content:space-around;padding:8px 12px;background:var(--bg3);border-radius:7px;margin-top:4px}
+.score-valid{color:var(--green);font-weight:800;font-size:1rem}
+.score-norep{color:var(--accent2);font-weight:800;font-size:1rem}
+.score-label{font-size:.65rem;color:var(--text3);margin-top:1px}
+
+/* ── LEVEL PICKER ── */
+.level-pick-card{padding:13px;border-radius:var(--radius-sm);border:2px solid var(--border);background:var(--card2);cursor:pointer;transition:.2s;margin-bottom:9px}
+.level-pick-card:active{transform:scale(.97)}
+.level-pick-card.lv1-card{border-color:transparent}
+.level-pick-card:hover,.level-pick-card.lv1-card{border-color:var(--green)}
+.level-pick-card:hover:nth-child(2),.level-pick-card.lv2-card{border-color:var(--yellow)}
+.level-pick-card:hover:nth-child(3),.level-pick-card.lv3-card{border-color:var(--accent)}
+.level-pick-card:hover:nth-child(4),.level-pick-card.lv4-card{border-color:var(--accent2)}
+.lpc-header{display:flex;align-items:center;gap:10px;margin-bottom:5px}
+.lpc-pts{font-size:.68rem;color:var(--text3);margin-left:auto}
+/* ── SMART INTERVAL TIMER ── */
+.interval-timer{border-radius:var(--radius);padding:18px;margin-bottom:10px;text-align:center;transition:background .4s,border-color .4s;position:relative;overflow:hidden}
+.it-effort{background:linear-gradient(135deg,rgba(220,38,38,.25),rgba(247,100,30,.15));border:2px solid var(--accent2)}
+.it-rest{background:linear-gradient(135deg,rgba(14,165,233,.2),rgba(99,102,241,.15));border:2px solid var(--blue)}
+.it-ready{background:var(--card);border:1px solid var(--border)}
+.it-phase{font-size:.72rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;opacity:.85}
+.it-countdown{font-size:4.2rem;font-weight:900;letter-spacing:-2px;font-variant-numeric:tabular-nums;line-height:1;margin:4px 0}
+.it-effort .it-countdown{color:#ff6b6b;text-shadow:0 0 24px rgba(255,107,107,.5)}
+.it-rest .it-countdown{color:var(--blue);text-shadow:0 0 24px rgba(77,171,247,.5)}
+.it-ready .it-countdown{color:var(--text2)}
+.it-round{font-size:.8rem;color:var(--text2);margin-top:5px}
+.it-progress{height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin:10px 0 4px;overflow:hidden}
+.it-bar{height:100%;border-radius:3px;transition:width .9s linear}
+.it-effort .it-bar{background:linear-gradient(90deg,var(--accent2),var(--accent3))}
+.it-rest .it-bar{background:linear-gradient(90deg,var(--blue),#74c0fc)}
+.global-timer-mini{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.it-controls{display:flex;gap:8px;margin-top:10px}
+/* ── RATING ── */
+.rating-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.rating-card{padding:14px 8px;border-radius:var(--radius-sm);border:2px solid var(--border);background:var(--card2);cursor:pointer;text-align:center;transition:.2s}
+.rating-card:active{transform:scale(.96)}
+.rating-card.sel{border-color:var(--accent);background:rgba(247,100,30,.1)}
+.rating-emoji{font-size:1.8rem;margin-bottom:4px}
+.rating-label{font-weight:700;font-size:.82rem}
+.rating-sub{font-size:.68rem;color:var(--text2);margin-top:2px;line-height:1.3}
+/* ── ANNOTATIONS ── */
+.anno-ex-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;margin-bottom:8px}
+.anno-ex-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:8px}
+.anno-tag{font-size:.67rem;font-weight:700;padding:2px 8px;border-radius:8px;background:rgba(255,212,59,.12);color:var(--yellow);border:1px solid rgba(255,212,59,.25)}
+.anno-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:.8rem;resize:none;outline:none;line-height:1.5}
+.anno-input:focus{border-color:var(--yellow)}
+.anno-general{background:rgba(255,212,59,.06);border:1px solid rgba(255,212,59,.25);border-radius:var(--radius);padding:13px;margin-bottom:10px}
+
+/* ── SESSION CODE OVERLAY ── */
+.session-overlay{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.session-logo{font-size:4rem;margin-bottom:10px}
+.session-title{font-size:1.5rem;font-weight:900;margin-bottom:6px;letter-spacing:-.5px}
+.session-sub{font-size:.85rem;color:var(--text2);margin-bottom:28px;line-height:1.5}
+.session-code-input{font-size:2rem;font-weight:800;text-align:center;letter-spacing:6px;text-transform:uppercase;width:100%;max-width:280px;background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:16px;color:var(--text);outline:none;transition:.2s}
+.session-code-input:focus{border-color:var(--accent)}
+.session-error{color:var(--accent2);font-size:.82rem;margin-top:8px;min-height:20px}
+/* ── WARNING BANNER ── */
+.warning-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:800;background:linear-gradient(135deg,#7f1d1d,#991b1b);border-bottom:2px solid var(--accent2);padding:10px 16px;text-align:center;animation:slideDown .3s ease}
+.warning-banner.show{display:block}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.warning-text{font-size:.85rem;font-weight:700;color:white;display:flex;align-items:center;justify-content:center;gap:8px}
+.warning-close{background:rgba(255,255,255,.2);border:none;color:white;border-radius:12px;padding:3px 10px;cursor:pointer;font-size:.78rem;margin-left:8px}
+/* ── PRESENCE DOTS ── */
+.presence-online{color:var(--green);font-size:.72rem;display:flex;align-items:center;gap:4px}
+.presence-away{color:var(--yellow);font-size:.72rem;display:flex;align-items:center;gap:4px}
+.presence-offline{color:var(--text3);font-size:.72rem;display:flex;align-items:center;gap:4px}
+.pdot{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pdot-on{background:var(--green);animation:pulse 1.5s infinite}
+.pdot-away{background:var(--yellow);animation:pulse 2s infinite}
+.pdot-off{background:var(--text3)}
+/* ── SESSION CODE TEACHER ── */
+.session-code-display{font-size:2.5rem;font-weight:900;letter-spacing:8px;text-align:center;padding:18px;background:linear-gradient(135deg,var(--card),var(--card2));border:2px solid var(--teacher);border-radius:var(--radius);color:var(--text);margin:10px 0}
+.session-code-display small{display:block;font-size:.7rem;letter-spacing:1px;color:var(--text2);font-weight:400;margin-top:4px}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-height:82vh;overflow-y:auto;padding:19px 16px;padding-bottom:calc(19px + env(safe-area-inset-bottom))}
+.modal-title{font-size:.95rem;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:var(--card2);border:none;color:var(--text2);width:29px;height:29px;border-radius:50%;cursor:pointer;font-size:.9rem}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-18px);background:var(--card);border:1px solid var(--green);color:var(--green);padding:9px 19px;border-radius:19px;font-size:.83rem;font-weight:600;z-index:1000;pointer-events:none;opacity:0;transition:.3s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── SECTION TITLES ── */
+.section-title{font-size:1.15rem;font-weight:800;margin-bottom:3px;letter-spacing:-.2px}
+.section-sub{font-size:.78rem;color:var(--text2);margin-bottom:15px}
+.divider{border:none;border-top:1px solid var(--border);margin:13px 0}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:11px;font-size:.7rem;font-weight:600;background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}
+.text-center{text-align:center}.text-sm{font-size:.8rem}.text-muted{color:var(--text2)}
+.text-accent{color:var(--accent)}.text-green{color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- ══ SESSION CODE OVERLAY (shown first) ══ -->
+<div class="session-overlay" id="sessionOverlay">
+  <div class="session-logo">🏋️</div>
+  <div class="session-title">Cross Training EPS</div>
+  <div class="session-sub">Entre le code de session donné par ton professeur<br>pour accéder à l'application</div>
+  <input class="session-code-input" id="sessionCodeInput" maxlength="6" placeholder="CODE"
+    oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+    onkeydown="if(event.key==='Enter')submitSessionCode()">
+  <div class="session-error" id="sessionError"></div>
+  <button class="btn btn-primary mt12" onclick="submitSessionCode()" style="max-width:280px;width:100%;font-size:1rem;padding:14px;">
+    ✅ Accéder à l'application
+  </button>
+  <div style="font-size:.7rem;color:var(--text3);margin-top:18px;line-height:1.8;">
+    🔒 Tes données sont anonymisées (RGPD)<br>
+    Ton profil est mémorisé pour ce code de session
+  </div>
+  <!-- Bouton enseignant discret en bas -->
+  <div style="margin-top:28px;padding-top:18px;border-top:1px solid var(--border);width:100%;max-width:280px;text-align:center;">
+    <button onclick="openTeacherFromSession()" style="background:none;border:1px solid var(--teacher);color:var(--teacher);border-radius:20px;padding:8px 18px;font-size:.75rem;font-weight:600;cursor:pointer;transition:.2s;" onmouseover="this.style.background='rgba(124,58,237,.15)'" onmouseout="this.style.background='none'">
+      🔐 Espace enseignant
+    </button>
+  </div>
+</div>
+
+<!-- ══ WARNING BANNER ══ -->
+<div class="warning-banner" id="warningBanner">
+  <div class="warning-text">
+    ⚠️ <span id="warningText">Ton professeur a remarqué que tu as quitté l'application !</span>
+    <button class="warning-close" onclick="dismissWarning()">OK compris</button>
+  </div>
+</div>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="app-header">
+  <div class="app-title">🏋️ <span>Cross</span>Training EPS</div>
+  <div class="header-badge" id="studentBadge" onclick="showSection('profil')">Mon profil</div>
+  <button class="teacher-btn" id="teacherBtn" onclick="openTeacher()" title="Espace Enseignant">🔐</button>
+</header>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     SECTION PROFIL
+══════════════════════════════════════ -->
+<section class="section active" id="section-profil">
+  <div class="section-title">👤 Mon Profil</div>
+  <div class="section-sub">Tes informations personnelles</div>
+
+  <div class="card">
+    <div class="card-title">📋 Identité</div>
+    <div class="form-group">
+      <label class="form-label">Prénom <span style="color:var(--accent2)">*</span></label>
+      <input type="text" class="form-input" id="pPrenom" placeholder="Ton prénom">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nom <span style="color:var(--accent2)">*</span></label>
+      <input type="text" class="form-input" id="pNom" placeholder="Ton nom">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Classe <span style="color:var(--accent2)">*</span></label>
+      <input type="text" class="form-input" id="pClasse" placeholder="Ex: Terminale B">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Âge <span class="opt">(pour calcul FC max)</span></label>
+      <input type="number" class="form-input" id="pAge" placeholder="17" min="14" max="20">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Genre <span style="color:var(--accent2)">*</span> <span class="opt">— adapte les niveaux des exercices</span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;">
+        <div class="mobile-card" id="genderCardH" onclick="selectGender('H')" style="padding:10px 6px;">
+          <div class="me" style="font-size:1.4rem;">♂️</div>
+          <div class="mn" style="font-size:.82rem;">Homme</div>
+        </div>
+        <div class="mobile-card" id="genderCardF" onclick="selectGender('F')" style="padding:10px 6px;">
+          <div class="me" style="font-size:1.4rem;">♀️</div>
+          <div class="mn" style="font-size:.82rem;">Femme</div>
+        </div>
+        <div class="mobile-card" id="genderCardA" onclick="selectGender('A')" style="padding:10px 6px;">
+          <div class="me" style="font-size:1.4rem;">⚧️</div>
+          <div class="mn" style="font-size:.82rem;">Autre</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎯 Mobile d'entraînement <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(optionnel)</span></div>
+    <div class="mobile-cards">
+      <div class="mobile-card" id="mobileCard1" onclick="selectMobile(1)">
+        <div class="me">⚡</div>
+        <div class="mn">Mobile 1</div>
+        <div class="mn text-accent" style="font-size:.82rem;">Explosivité</div>
+        <div class="md">Intensité élevée, puissance, dépassement de soi</div>
+      </div>
+      <div class="mobile-card" id="mobileCard2" onclick="selectMobile(2)">
+        <div class="me">🫀</div>
+        <div class="mn">Mobile 2</div>
+        <div class="mn text-blue" style="font-size:.82rem;">Endurance</div>
+        <div class="md">Effort prolongé, gestion cardio-pulmonaire</div>
+      </div>
+    </div>
+    <div id="mobileInfo" style="display:none;font-size:.8rem;color:var(--text2);padding:10px;background:var(--bg3);border-radius:8px;line-height:1.5;"></div>
+    <button class="btn btn-sm btn-secondary mt8" onclick="clearMobile()" id="clearMobileBtn" style="display:none;width:auto;">✕ Pas de mobile pour l'instant</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎓 Répartition AFL Bac <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(optionnel)</span></div>
+    <div style="font-size:.78rem;color:var(--text2);margin-bottom:9px;">AFL1 = 12pts · AFL2 + AFL3 = 8pts au choix de l'élève</div>
+    <select class="form-input" id="pAFLChoice">
+      <option value="">— Pas encore choisi —</option>
+      <option value="4-4">4pts AFL2 / 4pts AFL3</option>
+      <option value="6-2">6pts AFL2 / 2pts AFL3</option>
+      <option value="2-6">2pts AFL2 / 6pts AFL3</option>
+    </select>
+  </div>
+
+  <!-- Sync banner -->
+  <div class="sync-banner" id="syncBanner">
+    <div class="flex-between">
+      <div>
+        <div style="font-weight:700;font-size:.9rem;">☁️ Synchronisation avec le prof</div>
+        <div class="sync-status" id="syncStatus"><span class="sync-dot dot-off"></span>Initialisation...</div>
+      </div>
+      <button class="btn btn-sm btn-sync" onclick="syncToFirebase()" style="width:auto;" id="syncBtn">📤 Sync</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--text3);margin-top:6px;" id="lastSyncLabel"></div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveProfile()">💾 Enregistrer mon profil</button>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECTION SKILLS
+══════════════════════════════════════ -->
+<section class="section" id="section-skills">
+  <div class="section-title">📚 Bibliothèque de Skills</div>
+  <div class="section-sub">Explore et évalue les mouvements Cross Training</div>
+  <div class="family-tabs" id="familyTabs">
+    <div class="family-tab active" onclick="filterFamily('all',this)">Tous</div>
+    <div class="family-tab" onclick="filterFamily('force',this)">💪 Force</div>
+    <div class="family-tab" onclick="filterFamily('explosivite',this)">⚡ Explosivité</div>
+    <div class="family-tab" onclick="filterFamily('cardio',this)">🫀 Cardio</div>
+    <div class="family-tab" onclick="filterFamily('resistance',this)">🛡️ Résistance</div>
+  </div>
+  <div id="skillsContainer"></div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECTION WOD
+══════════════════════════════════════ -->
+<section class="section" id="section-wod">
+  <div class="section-title">🏗️ Construire mon WOD</div>
+  <div class="section-sub">Compose ton entraînement pour le Bac</div>
+
+  <!-- MOBILE POUR CE WOD -->
+  <div class="card">
+    <div class="card-title">🎯 Mobile de ce WOD <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(optionnel — pour tester)</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div class="mobile-card" id="wodMobileCard1" onclick="selectWodMobile(1)">
+        <div class="me" style="font-size:1.5rem;">⚡</div>
+        <div class="mn" style="font-size:.8rem;">Mobile 1</div>
+        <div class="md">Explosivité<br>85–95% FC</div>
+      </div>
+      <div class="mobile-card" id="wodMobileCard2" onclick="selectWodMobile(2)">
+        <div class="me" style="font-size:1.5rem;">🫀</div>
+        <div class="mn" style="font-size:.8rem;">Mobile 2</div>
+        <div class="md">Endurance<br>65–80% FC</div>
+      </div>
+      <div class="mobile-card" id="wodMobileCard0" onclick="selectWodMobile(0)">
+        <div class="me" style="font-size:1.5rem;">🔄</div>
+        <div class="mn" style="font-size:.8rem;">Tester</div>
+        <div class="md">Je découvre les deux mobiles</div>
+      </div>
+    </div>
+    <div id="wodMobileHint" style="display:none;font-size:.78rem;color:var(--text2);padding:8px;background:var(--bg3);border-radius:8px;margin-top:8px;line-height:1.5;"></div>
+  </div>
+
+  <!-- TYPE DE WOD -->
+  <div class="card">
+    <div class="card-title">⏱️ Type de WOD</div>
+    <div class="wod-type-grid" id="wodTypeGrid">
+      <div class="wod-type-btn" onclick="selectWodType('AMRAP',this)"><span class="wtn">AMRAP</span>As Many Rounds</div>
+      <div class="wod-type-btn" onclick="selectWodType('TABATA',this)"><span class="wtn">TABATA</span>Effort / Récup</div>
+      <div class="wod-type-btn" onclick="selectWodType('EMOM',this)"><span class="wtn">EMOM</span>1 min / round</div>
+      <div class="wod-type-btn" onclick="selectWodType('E2MOM',this)"><span class="wtn">E2MOM</span>1 round / 2 min</div>
+      <div class="wod-type-btn" onclick="selectWodType('FORTIME',this)"><span class="wtn">FOR TIME</span>Le + vite possible</div>
+    </div>
+    <div id="wodTypeInfo" style="display:none;font-size:.79rem;color:var(--text2);padding:8px;background:var(--bg3);border-radius:8px;line-height:1.5;margin-top:6px;"></div>
+  </div>
+
+  <!-- DURÉE -->
+  <div class="card">
+    <div class="card-title">🕐 Durée cible</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <input type="number" class="form-input" id="wodDuration" value="18" min="16" max="20" style="width:76px;text-align:center;">
+      <span style="color:var(--text2);font-size:.88rem;">minutes — Bac : 16 à 20 min</span>
+    </div>
+  </div>
+
+  <!-- EXERCICES -->
+  <div class="card">
+    <div class="card-title">🏋️ Exercices (min. 4) <span style="font-size:.72rem;font-weight:400;color:var(--text3)">— choisis le niveau pour chaque skill</span></div>
+    <div id="wodSlots">
+      <div class="wod-exercise-slot" id="slot-0" onclick="openSkillPicker(0)"><div class="slot-number">1</div><div class="slot-content"><div style="color:var(--text3)">Touche pour choisir</div><div class="slot-detail">Haut du corps recommandé</div></div><div>➕</div></div>
+      <div class="wod-exercise-slot" id="slot-1" onclick="openSkillPicker(1)"><div class="slot-content"><div class="slot-number">2</div><div style="color:var(--text3)">Touche pour choisir</div><div class="slot-detail">Bas du corps recommandé</div></div><div>➕</div></div>
+      <div class="wod-exercise-slot" id="slot-2" onclick="openSkillPicker(2)"><div class="slot-number">3</div><div class="slot-content"><div style="color:var(--text3)">Touche pour choisir</div><div class="slot-detail">Abdominaux recommandé</div></div><div>➕</div></div>
+      <div class="wod-exercise-slot" id="slot-3" onclick="openSkillPicker(3)"><div class="slot-number">4</div><div class="slot-content"><div style="color:var(--text3)">Touche pour choisir</div><div class="slot-detail">Cardio recommandé</div></div><div>➕</div></div>
+    </div>
+    <button class="btn btn-secondary btn-sm mt8" onclick="addWodSlot()" style="width:auto;">➕ Ajouter un exercice</button>
+  </div>
+
+  <!-- PARAMÈTRES DYNAMIQUES selon type WOD -->
+  <div class="card" id="wodParamsCard">
+    <div class="card-title">⚙️ Paramètres <span id="wodParamsTypeLabel" style="font-size:.72rem;font-weight:600;color:var(--accent);margin-left:4px;"></span></div>
+    <div id="wodParamsDynamic">
+      <div style="text-align:center;color:var(--text3);font-size:.82rem;padding:10px;">← Choisis d'abord un type de WOD</div>
+    </div>
+  </div>
+
+  <!-- VALIDATION -->
+  <div class="card">
+    <div class="card-title">✅ Validation WOD</div>
+    <div id="wodValidation" class="wod-validation"></div>
+    <div id="wodMobileMatch" style="font-size:.79rem;margin-top:7px;padding:7px;border-radius:7px;"></div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveWOD()">💾 Enregistrer mon WOD</button>
+  <button class="btn btn-secondary mt8" onclick="prepLaunchSession()">🚀 Lancer la séance</button>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECTION SÉANCES
+══════════════════════════════════════ -->
+<section class="section" id="section-seances">
+  <div class="section-title">⏱️ Mes Séances</div>
+  <div class="section-sub">Suis et enregistre tes performances</div>
+
+  <div id="sessionActive" style="display:none;">
+
+    <!-- WOD recap + judge banner -->
+    <div id="sessionWodBanner" class="card" style="background:linear-gradient(135deg,rgba(247,100,30,.12),rgba(232,61,61,.08));border-color:var(--accent);margin-bottom:8px;"></div>
+
+    <!-- CHRONO GLOBAL (toujours visible) -->
+    <div class="global-timer-mini">
+      <div>
+        <div style="font-size:.67rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">⏱️ Durée totale</div>
+        <div style="font-size:1.4rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text)" id="sessionTimerDisplay">00:00</div>
+      </div>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-primary btn-sm" id="timerBtn" onclick="toggleTimer()" style="width:auto;padding:9px 14px;">▶️ Start</button>
+        <button class="btn btn-secondary btn-sm" onclick="resetTimer()" style="width:auto;padding:9px 12px;">↺</button>
+      </div>
+    </div>
+
+    <!-- CHRONO INTERVAL (TABATA / EMOM / E2MOM) -->
+    <div id="intervalTimerBlock" style="display:none;">
+      <div class="interval-timer it-ready" id="intervalTimerCard">
+        <div class="it-phase" id="itPhase">PRÊT</div>
+        <div class="it-countdown" id="itCountdown">--</div>
+        <div class="it-progress"><div class="it-bar" id="itBar" style="width:100%"></div></div>
+        <div class="it-round" id="itRound"></div>
+        <div class="it-controls">
+          <button class="btn btn-primary" id="itStartBtn" onclick="toggleIntervalTimer()" style="flex:1;">▶️ Lancer le chrono</button>
+          <button class="btn btn-secondary" onclick="resetIntervalTimer()" style="width:auto;padding:12px 14px;">↺</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FC -->
+    <div class="card">
+      <div class="card-title">🫀 Fréquence Cardiaque</div>
+      <div style="display:flex;gap:9px;align-items:center;margin-bottom:9px;">
+        <input type="number" class="form-input" id="fcInput" placeholder="FC actuelle (bpm)" style="flex:1;">
+        <button class="btn btn-sm btn-primary" onclick="analyzeFCFromSession()" style="width:auto;">Analyser</button>
+      </div>
+      <div id="fcSessionResult"></div>
+    </div>
+
+    <!-- Exercise trackers -->
+    <div id="sessionExercises"></div>
+
+    <!-- Bilan -->
+    <div class="card">
+      <div class="card-title">📊 Bilan de séance</div>
+      <div class="form-group">
+        <label class="form-label">Perception de l'effort</label>
+        <div class="intensity-scale" id="sessionEffortScale">
+          <button class="scale-btn" onclick="selectEffort(1,this)">1</button>
+          <button class="scale-btn" onclick="selectEffort(2,this)">2</button>
+          <button class="scale-btn" onclick="selectEffort(3,this)">3</button>
+          <button class="scale-btn" onclick="selectEffort(4,this)">4</button>
+          <button class="scale-btn" onclick="selectEffort(5,this)">5</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.63rem;color:var(--text3);"><span>Faible</span><span>Très intense</span></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sensations musculaires</label>
+        <select class="form-input" id="sessionMuscFeel">
+          <option value="">Sélectionner...</option>
+          <option value="1">Relâchement</option>
+          <option value="2">Activité musculaire ressentie</option>
+          <option value="3">Échauffement musculaire</option>
+          <option value="4">Contractions intenses</option>
+          <option value="5">Fatigue musculaire intense</option>
+          <option value="6">Muscles tétanisés</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">FC moyenne (bpm)</label>
+        <input type="number" class="form-input" id="sessionFCMoy" placeholder="ex: 165">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Score / Rounds réalisés</label>
+        <input type="number" class="form-input" id="sessionScore" placeholder="Nombre de rounds">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Commentaire (juge / athlète)</label>
+        <textarea class="form-input" id="sessionComment" rows="3" placeholder="Ressentis, niveaux modifiés, régulations..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="openRatingModal()">💾 Enregistrer ma séance</button>
+    </div>
+  </div>
+
+  <div id="sessionHistory">
+    <div class="card" style="background:linear-gradient(135deg,var(--card),var(--card2));">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div style="font-size:2.3rem;">🏃</div>
+        <div>
+          <div style="font-weight:700;">Prêt à t'entraîner ?</div>
+          <div style="font-size:.78rem;color:var(--text2);">Construis ton WOD puis lance une séance</div>
+        </div>
+      </div>
+      <button class="btn btn-primary mt12" onclick="prepLaunchSession()">🚀 Lancer une séance</button>
+    </div>
+    <div id="sessionsList"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECTION ANALYSE
+══════════════════════════════════════ -->
+<section class="section" id="section-analyse">
+  <div class="section-title">📊 Analyse & Annotations</div>
+  <div class="section-sub">Comprends ton entraînement · Améliore ton WOD</div>
+  <div class="card">
+    <div class="card-title">🫀 Analyseur FC</div>
+    <div class="form-group">
+      <label class="form-label">Ton âge</label>
+      <input type="number" class="form-input" id="fcAge" placeholder="17" min="14" max="20">
+    </div>
+    <div class="form-group">
+      <label class="form-label">FC actuelle (bpm)</label>
+      <input type="number" class="form-input" id="fcCurrent" placeholder="165">
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="analyzeFC()" style="width:auto;margin-bottom:11px;">Analyser ma zone</button>
+    <div id="fcZoneResult"></div>
+  </div>
+  <div class="card"><div class="card-title">💪 Muscles les plus sollicités</div><div id="muscleAnalysis"></div></div>
+  <div class="card"><div class="card-title">🏋️ Répartition par famille</div><div id="familyAnalysis"></div></div>
+  <div class="card"><div class="card-title">📋 Validation WOD pour le Bac</div><div id="bacAnalysis"></div></div>
+  <!-- WOD + Annotations -->
+  <div id="wodAnnotationsBlock"></div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECTION BILAN
+══════════════════════════════════════ -->
+<section class="section" id="section-bilan">
+  <div class="section-title">🎓 Bilan & Bac</div>
+  <div class="section-sub">Prépare ton épreuve du Bac EPS</div>
+  <div id="bilanContent"></div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BOTTOM NAV
+══════════════════════════════════════ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showSection('profil',this)"><span class="ni">👤</span>Profil</button>
+  <button class="nav-btn" onclick="showSection('skills',this)"><span class="ni">📚</span>Skills</button>
+  <button class="nav-btn" onclick="showSection('wod',this)"><span class="ni">🏗️</span>Mon WOD</button>
+  <button class="nav-btn" onclick="showSection('seances',this)"><span class="ni">⏱️</span>Séances</button>
+  <button class="nav-btn" onclick="showSection('analyse',this)"><span class="ni">📊</span>Analyse</button>
+  <button class="nav-btn" onclick="showSection('bilan',this)"><span class="ni">🎓</span>Bilan</button>
+</nav>
+
+<!-- ══════════════════════════════════════
+     ESPACE ENSEIGNANT
+══════════════════════════════════════ -->
+<div class="teacher-overlay" id="teacherOverlay">
+  <div class="teacher-sheet">
+    <div class="teacher-header">
+      <div class="teacher-header-title">🔐 Espace Enseignant</div>
+      <button class="teacher-header-close" onclick="closeTeacher()">✕</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="teacher-body" id="teacherLogin">
+      <div style="text-align:center;padding:20px 0 14px;">
+        <div style="font-size:3rem;margin-bottom:10px;">🏫</div>
+        <div style="font-weight:700;font-size:1.1rem;">Accès enseignant</div>
+        <div style="font-size:.82rem;color:var(--text2);margin-top:5px;">Entre le mot de passe pour accéder au suivi élèves</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <input type="password" class="form-input" id="teacherPass" placeholder="Mot de passe enseignant" onkeydown="if(event.key==='Enter')checkTeacherPass()">
+      </div>
+      <button class="btn btn-purple" onclick="checkTeacherPass()">🔓 Connexion</button>
+    </div>
+
+    <!-- DASHBOARD (hidden until login) -->
+    <div class="teacher-body" id="teacherDashboard" style="display:none;">
+
+      <!-- Firebase status -->
+      <div id="fbTeacherStatus" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;margin-bottom:10px;font-size:.78rem;background:rgba(81,207,102,.08);border:1px solid rgba(81,207,102,.3);color:var(--green);">
+        <span class="live-dot"></span><span id="fbTeacherStatusText">Connexion Firebase en cours...</span>
+      </div>
+
+      <div class="teacher-tab-bar">
+        <div class="teacher-tab active" onclick="switchTeacherTab('presence',this)">🟢 Live</div>
+        <div class="teacher-tab" onclick="switchTeacherTab('eleves',this)">👨‍🎓 Carnets</div>
+        <div class="teacher-tab" onclick="switchTeacherTab('stats',this)">📊 Stats</div>
+        <div class="teacher-tab" onclick="switchTeacherTab('code',this)">🔑 Code</div>
+        <div class="teacher-tab" onclick="switchTeacherTab('session',this)">📅 Séance</div>
+      </div>
+
+      <!-- TAB: PRÉSENCE LIVE -->
+      <div id="teacherTabPresence">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;">
+          <div style="font-size:.78rem;color:var(--text2);" id="presenceHeader"><span class="live-dot"></span>Élèves en direct</div>
+          <button class="btn btn-sm btn-purple" onclick="loadPresence()" style="width:auto;padding:6px 10px;">🔄</button>
+        </div>
+        <div id="presenceList">
+          <div style="text-align:center;padding:16px;color:var(--text3);font-size:.82rem;">En attente de connexions...</div>
+        </div>
+      </div>
+
+      <!-- TAB: CARNETS / ÉLÈVES -->
+      <div id="teacherTabEleves" style="display:none;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <input type="text" class="form-input" id="teacherSearch" placeholder="🔍 Prénom.N ou classe..." oninput="filterStudents(this.value)" style="flex:1;">
+          <button class="btn btn-sm btn-purple" onclick="loadStudents()" style="width:auto;padding:6px 10px;">🔄</button>
+        </div>
+        <div id="studentsList"><div style="text-align:center;padding:20px;color:var(--text3);font-size:.82rem;"><span class="live-dot"></span>Connexion temps réel...</div></div>
+      </div>
+
+      <!-- TAB: STATS -->
+      <div id="teacherTabStats" style="display:none;">
+        <div id="teacherStatsContent"><div style="text-align:center;padding:20px;color:var(--text3);font-size:.85rem;">Chargement...</div></div>
+      </div>
+
+      <!-- TAB: CODE SÉANCE -->
+      <div id="teacherTabCode" style="display:none;">
+        <div style="font-size:.82rem;color:var(--text2);margin-bottom:12px;line-height:1.5;">
+          📢 Écris ce code au tableau.<br>Les élèves l'entrent pour accéder à l'application.
+        </div>
+        <div class="session-code-display" id="teacherSessionCodeDisplay">
+          ------<small>Code séance actif</small>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+          <button class="btn btn-purple btn-sm" onclick="generateNewSessionCode()">🎲 Générer</button>
+          <button class="btn btn-secondary btn-sm" onclick="copySessionCode()">📋 Copier</button>
+        </div>
+        <div class="form-group mt12">
+          <label class="form-label">Définir un code personnalisé (6 car.)</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" class="form-input" id="customCodeInput" maxlength="6" placeholder="EPS001"
+              style="text-transform:uppercase;letter-spacing:4px;text-align:center;font-weight:700;"
+              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+            <button class="btn btn-purple btn-sm" onclick="setCustomSessionCode()" style="width:auto;">✅</button>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:8px;font-size:.76rem;color:var(--text2);line-height:1.6;">
+          🔒 <b>RGPD :</b> Élèves identifiés sous la forme <b>Prénom.N</b> (ex: Maxime.M)<br>
+          Les noms complets restent uniquement sur l'appareil de l'élève
+        </div>
+      </div>
+
+      <!-- TAB: SÉANCE DU JOUR -->
+      <div id="teacherTabSession" style="display:none;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <input type="date" class="form-input" id="teacherDateFilter" style="flex:1;">
+          <button class="btn btn-sm btn-purple" onclick="filterByDate(document.getElementById('teacherDateFilter').value)" style="width:auto;">📅 Voir</button>
+        </div>
+        <div id="sessionDayContent"><div style="text-align:center;padding:16px;color:var(--text3);font-size:.82rem;">Sélectionne une date</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- JUDGE / PRE-LAUNCH MODAL -->
+<div class="modal-overlay" id="preLaunchModal">
+  <div class="modal-sheet">
+    <div class="modal-title">🚀 Avant de commencer <button class="modal-close" onclick="closeModal('preLaunchModal')">✕</button></div>
+    <div style="text-align:center;padding:8px 0 14px;">
+      <div style="font-size:2.5rem;margin-bottom:6px;">⚖️</div>
+      <div style="font-weight:700;font-size:1rem;">Identification du Juge</div>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:4px;line-height:1.5;">Le juge est responsable de la sécurité et de la qualité d'exécution des mouvements pendant le WOD.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Prénom du juge / chronométreur <span style="color:var(--accent2)">*</span></label>
+      <input type="text" class="form-input" id="judgeNameInput" placeholder="Prénom du juge" autocomplete="off">
+    </div>
+    <div class="form-group" id="preLaunchMobileGroup">
+      <label class="form-label">Mobile pour cette séance <span style="font-size:.72rem;color:var(--text3);">(confirme ou change)</span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+        <div class="mobile-card" id="preMobileCard1" onclick="setPreMobile(1)" style="padding:10px 6px;">
+          <div class="me" style="font-size:1.3rem;">⚡</div>
+          <div class="mn" style="font-size:.75rem;">Mobile 1</div>
+          <div class="md">Explosivité</div>
+        </div>
+        <div class="mobile-card" id="preMobileCard2" onclick="setPreMobile(2)" style="padding:10px 6px;">
+          <div class="me" style="font-size:1.3rem;">🫀</div>
+          <div class="mn" style="font-size:.75rem;">Mobile 2</div>
+          <div class="md">Endurance</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary mt8" onclick="confirmLaunch()">✅ C'est parti !</button>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div class="modal-overlay" id="ratingModal">
+  <div class="modal-sheet">
+    <div class="modal-title">🏁 Comment s'est passé ton WOD ? <button class="modal-close" onclick="closeModal('ratingModal')">✕</button></div>
+    <div style="font-size:.8rem;color:var(--text2);margin-bottom:4px;">Ce ressenti t'aidera à ajuster ton entraînement</div>
+    <div class="rating-grid" id="ratingGrid">
+      <div class="rating-card" onclick="selectRating('top',this)">
+        <div class="rating-emoji">🔥</div>
+        <div class="rating-label">Top !</div>
+        <div class="rating-sub">Intensité parfaite · Je recommence</div>
+      </div>
+      <div class="rating-card" onclick="selectRating('bien',this)">
+        <div class="rating-emoji">👍</div>
+        <div class="rating-label">Bien</div>
+        <div class="rating-sub">Quelques ajustements possible</div>
+      </div>
+      <div class="rating-card" onclick="selectRating('dur',this)">
+        <div class="rating-emoji">😅</div>
+        <div class="rating-label">Difficile</div>
+        <div class="rating-sub">À adapter · Réduire reps ou niveau</div>
+      </div>
+      <div class="rating-card" onclick="selectRating('trop',this)">
+        <div class="rating-emoji">😰</div>
+        <div class="rating-label">Trop dur</div>
+        <div class="rating-sub">WOD à revoir en profondeur</div>
+      </div>
+    </div>
+    <div id="ratingAdvice" style="display:none;padding:10px;background:var(--bg3);border-radius:8px;font-size:.8rem;color:var(--text2);line-height:1.6;margin-bottom:12px;"></div>
+    <button class="btn btn-primary" id="ratingConfirmBtn" onclick="saveSessionWithRating()" style="display:none;">✅ Enregistrer ma séance</button>
+  </div>
+</div>
+
+<!-- LEVEL PICKER MODAL -->
+<div class="modal-overlay" id="levelPickerModal">
+  <div class="modal-sheet">
+    <div class="modal-title"><span id="levelPickerTitle">Choisir le niveau</span><button class="modal-close" onclick="closeModal('levelPickerModal')">✕</button></div>
+    <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Choisis ton niveau de départ pour ce WOD. Tu pourras le modifier pendant la séance.</div>
+    <div id="levelPickerList"></div>
+  </div>
+</div>
+
+<!-- SKILL PICKER MODAL -->
+<div class="modal-overlay" id="skillPickerModal">
+  <div class="modal-sheet">
+    <div class="modal-title">Choisir un exercice <button class="modal-close" onclick="closeModal('skillPickerModal')">✕</button></div>
+    <div id="skillPickerList"></div>
+  </div>
+</div>
+
+<!-- STUDENT DETAIL MODAL -->
+<div class="modal-overlay" id="studentDetailModal">
+  <div class="modal-sheet">
+    <div class="modal-title"><span id="studentDetailTitle">Élève</span><button class="modal-close" onclick="closeModal('studentDetailModal')">✕</button></div>
+    <div id="studentDetailContent"></div>
+  </div>
+</div>
+
+<!-- SESSION DETAIL MODAL -->
+<div class="modal-overlay" id="sessionDetailModal">
+  <div class="modal-sheet">
+    <div class="modal-title"><span id="detailModalTitle">Séance</span><button class="modal-close" onclick="closeModal('sessionDetailModal')">✕</button></div>
+    <div id="sessionDetailContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════ -->
+<script>
+// ════════════════════════════════════════
+//  DONNÉES SKILLS
+// ════════════════════════════════════════
+const SKILLS_DATA = [
+  { id:'pompes', name:'Pompes', family:'force', emoji:'💪',
+    muscles:['Pectoraux','Triceps','Deltoïdes antérieurs','Abdominaux'],
+    muscleGroups:['Haut du corps','Poussée'],
+    description:'Exercice de poussée au sol. Corps gainé, descente contrôlée, bras tendus en haut.',
+    levels:[
+      {level:1,desc:'(F) Pompes genoux inclinées / (H) Pompes genoux',descF:'Pompes genoux inclinées',descH:'Pompes genoux',points:1},
+      {level:2,desc:'(F) Pompes genoux / (H) Pompes classiques',descF:'Pompes genoux',descH:'Pompes classiques',points:2},
+      {level:3,desc:'(F) Pompes classiques inclinées / (H) Pompes touchés épaules',descF:'Pompes classiques inclinées',descH:'Pompes touchés épaules',points:3},
+      {level:4,desc:'(F) Pompes classiques / (H) Pompes diamant',descF:'Pompes classiques',descH:'Pompes diamant',points:4}]},
+  { id:'dips', name:'Dips', family:'force', emoji:'🤸',
+    muscles:['Triceps','Pectoraux','Deltoïdes antérieurs'],
+    muscleGroups:['Haut du corps','Poussée'],
+    description:'Extension des bras sur une chaise ou banc. Isole fortement les triceps.',
+    levels:[
+      {level:1,desc:'Pieds à plat',points:1},
+      {level:2,desc:'Jambes tendues',points:2},
+      {level:3,desc:'Niveau 2 + pieds surélevés',points:3}]},
+  { id:'kettlebell', name:'Kettlebell Swing', family:'force', emoji:'🔔',
+    muscles:['Ischio-jambiers','Fessiers','Dorsaux','Abdominaux','Trapèzes'],
+    muscleGroups:['Chaîne postérieure','Full body'],
+    description:'Balancé de kettlebell. Mouvement de hanches explosif. Dos droit, regard horizon.',
+    levels:[
+      {level:1,desc:'(F) 4kg / (H) 6kg',descF:'4 kg',descH:'6 kg',points:1},
+      {level:2,desc:'(F) 6kg / (H) 8kg',descF:'6 kg',descH:'8 kg',points:2},
+      {level:3,desc:'(F) 8kg / (H) 12kg',descF:'8 kg',descH:'12 kg',points:3},
+      {level:4,desc:'(F) 12kg / (H) 16kg',descF:'12 kg',descH:'16 kg',points:4}]},
+  { id:'squats', name:'Squats', family:'explosivite', emoji:'🦵',
+    muscles:['Quadriceps','Fessiers','Ischio-jambiers','Mollets','Abdominaux'],
+    muscleGroups:['Bas du corps','Poussée'],
+    description:'Flexion des genoux. Pieds écartés, genoux dans l\'axe des pieds, dos droit.',
+    levels:[
+      {level:1,desc:'Air squats (sans charge)',points:1},
+      {level:2,desc:'Squats-jump (avec saut)',points:2},
+      {level:3,desc:'Squats Wall-Ball',points:3}]},
+  { id:'boxjump', name:'Box Jump', family:'explosivite', emoji:'📦',
+    muscles:['Quadriceps','Fessiers','Mollets','Soléaires'],
+    muscleGroups:['Bas du corps','Explosivité'],
+    description:'Saut sur une boîte. Réception genoux fléchis, pieds à plat, retour contrôlé.',
+    levels:[
+      {level:1,desc:'Montée type escalier (1 pied après l\'autre)',points:1},
+      {level:2,desc:'Saut 2 pieds jambes fléchies',points:2},
+      {level:3,desc:'Saut 2 pieds – descente saut extension complète',points:3}]},
+  { id:'fentes', name:'Fentes', family:'explosivite', emoji:'🧎',
+    muscles:['Quadriceps','Fessiers','Ischio-jambiers','Mollets'],
+    muscleGroups:['Bas du corps','Équilibre'],
+    description:'Pas en avant / arrière. Genou arrière proche du sol, buste droit.',
+    levels:[
+      {level:1,desc:'Fentes alternées',points:1},
+      {level:2,desc:'Fentes bulgares (pied arrière surélevé)',points:2},
+      {level:3,desc:'Fentes sautées',points:3}]},
+  { id:'jumpingjack', name:'Jumping Jack', family:'cardio', emoji:'⭐',
+    muscles:['Mollets','Deltoïdes','Cardio-vasculaire'],
+    muscleGroups:['Cardio','Coordination'],
+    description:'Saut écarté-joint avec bras. Rythme régulier, bras tendus au-dessus de la tête.',
+    levels:[
+      {level:1,desc:'20 répétitions',points:1},
+      {level:2,desc:'30 répétitions',points:2},
+      {level:3,desc:'40 répétitions',points:3},
+      {level:4,desc:'60 répétitions',points:4}]},
+  { id:'corde', name:'Corde à sauter', family:'cardio', emoji:'🪢',
+    muscles:['Mollets','Avant-bras','Cardio-vasculaire','Coordination'],
+    muscleGroups:['Cardio','Coordination'],
+    description:'Sauts à la corde. Rythme régulier, coudes près du corps, rotation des poignets.',
+    levels:[
+      {level:1,desc:'30 répétitions',points:1},
+      {level:2,desc:'50 répétitions',points:2},
+      {level:3,desc:'80 répétitions',points:3}]},
+  { id:'mountainclimber', name:'Mountain Climber', family:'cardio', emoji:'🧗',
+    muscles:['Abdominaux','Deltoïdes','Quadriceps','Cardio-vasculaire'],
+    muscleGroups:['Cardio','Gainage','Core'],
+    description:'Course en planche. Hanches basses, alterner genoux vers poitrine rapidement.',
+    levels:[
+      {level:1,desc:'10 répétitions (Droite+Gauche)',points:1},
+      {level:2,desc:'20 répétitions (D+G)',points:2},
+      {level:3,desc:'30 répétitions (D+G)',points:3}]},
+  { id:'burpees', name:'Burpees', family:'cardio', emoji:'🔥',
+    muscles:['Pectoraux','Quadriceps','Abdominaux','Deltoïdes','Cardio-vasculaire'],
+    muscleGroups:['Full body','Cardio'],
+    description:'Planche + relevé + saut. Mouvement complet enchaîné sans pause.',
+    levels:[
+      {level:1,desc:'(F) Burpees planche sans pompes / (H) Burpees avec pompes — 4 rép',descF:'Burpees planche sans pompes — 4 rép',descH:'Burpees avec pompes — 4 rép',points:1},
+      {level:2,desc:'8 répétitions',points:2},
+      {level:3,desc:'12 répétitions',points:3}]},
+  { id:'situp', name:'Sit-up', family:'resistance', emoji:'🤸',
+    muscles:['Grand droit abdominal','Psoas-iliaque','Obliques'],
+    muscleGroups:['Core','Abdominaux'],
+    description:'Relevé de buste complet. Amplitude maximale, pieds au sol ou tenus.',
+    levels:[
+      {level:1,desc:'Demi-sit up (touché genoux)',points:1},
+      {level:2,desc:'(F) Sit up touché-pieds avec aide / (H) Sit up touché-pieds',descF:'Sit up touché-pieds avec aide',descH:'Sit up touché-pieds',points:2},
+      {level:3,desc:'(F) Sit up SANS aide / (H) V-up',descF:'Sit up SANS aide',descH:'V-up',points:3}]},
+  { id:'gainage', name:'Gainage dynamique', family:'resistance', emoji:'🧱',
+    muscles:['Transverse','Grand droit','Obliques','Lombaires','Deltoïdes'],
+    muscleGroups:['Core','Stabilisateurs'],
+    description:'Planche et variantes dynamiques. Dos plat, hanches dans l\'axe, respiration régulière.',
+    levels:[
+      {level:1,desc:'Planche jumping-jack',points:1},
+      {level:2,desc:'Planche militaire',points:2},
+      {level:3,desc:'Planche main et jambe tendus opposées',points:3}]},
+  { id:'russiantwist', name:'Russian Twist', family:'resistance', emoji:'🔄',
+    muscles:['Obliques','Grand droit','Psoas','Lombaires'],
+    muscleGroups:['Core','Rotation'],
+    description:'Rotation du buste assis. Pieds décollés ou au sol, amplitude maximale.',
+    levels:[
+      {level:1,desc:'Sans poids, pieds au sol',points:1},
+      {level:2,desc:'Poids léger (8kg), pied décollé',points:2},
+      {level:3,desc:'Poids lourd (12kg), pied décollé',points:3}]},
+];
+
+// ════════════════════════════════════════
+//  GENDER HELPERS
+// ════════════════════════════════════════
+function getGender() {
+  return (state.profile && state.profile.gender) || 'A';
+}
+
+function getLevelDesc(levelObj, gender) {
+  if (!gender || gender === 'A') return levelObj.desc;
+  if (gender === 'H' && levelObj.descH) return levelObj.descH;
+  if (gender === 'F' && levelObj.descF) return levelObj.descF;
+  return levelObj.desc;
+}
+
+function getGenderedLevels(skill, gender) {
+  // For 'A' (autre), show full desc. For H/F, filter to show relevant lines only.
+  return skill.levels;
+}
+
+const WOD_TYPE_INFO = {
+  AMRAP:'As Many Rounds As Possible — Autant de rounds que possible dans le temps imparti. Idéal Mobile 2 (endurance, effort continu 15–20min).',
+  TABATA:'Alternance effort/récup (ex: 20s/10s ou 40s/20s). Haute intensité. Recommandé Mobile 1.',
+  EMOM:'Every Minute On the Minute — 1 exercice différent par minute. Format structuré et régulier.',
+  E2MOM:'Every 2 Minutes On the Minute — Un round complet (4+ exercices) toutes les 2 minutes pendant 20 min.',
+  FORTIME:'Compléter une charge de travail définie le plus vite possible. Mobile 1 privilégié.'
+};
+
+const FAMILY_LABELS = { force:'💪 Force', explosivite:'⚡ Explosivité', cardio:'🫀 Cardio', resistance:'🛡️ Résistance' };
+const FAMILY_COLORS = { force:'tag-force', explosivite:'tag-explosivite', cardio:'tag-cardio', resistance:'tag-resistance' };
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let state = {
+  profile:null, skillLogs:{}, wod:null, sessions:[],
+  currentSession:null, currentSlot:-1,
+  timerInterval:null, timerSeconds:0, timerRunning:false,
+  sessionEffort:0, selectedMobile:0, _tempIntensity:{},
+};
+
+// Firebase globals (gérés par le module interne)
+let teacherListener  = null;
+let allStudentsData  = [];
+let teacherLoggedIn  = false;
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('ct_state_v3');
+    if (s) { const p = JSON.parse(s); state = {...state,...p,timerInterval:null,timerRunning:false}; }
+    state.selectedMobile = state.profile && state.profile.mobile ? state.profile.mobile : 0;
+  } catch(e) {}
+}
+function saveState() {
+  const s = {
+    profile:       state.profile,
+    skillLogs:     state.skillLogs,
+    wod:           state.wod,
+    sessions:      state.sessions,
+    wodAnnotations: state.wodAnnotations || {}
+  };
+  localStorage.setItem('ct_state_v3', JSON.stringify(s));
+}
+
+// ════════════════════════════════════════
+//  FIREBASE — CONFIG ENCODÉE (jamais affichée)
+// ════════════════════════════════════════
+(function _initFB() {
+  const _a = atob;
+  const _cfg = {
+    apiKey:            _a('QUl6YVN5OGM5Ry11TUlKRkFsSGdweVZyYkN3S3lNbl9VS0lMZDJr'),
+    authDomain:        _a('Y2FybmV0LWQtZW50cmFpbmVtZW50LmZpcmViYXNlYXBwLmNvbQ=='),
+    projectId:         _a('Y2FybmV0LWQtZW50cmFpbmVtZW50'),
+    storageBucket:     _a('Y2FybmV0LWQtZW50cmFpbmVtZW50LmZpcmViYXNlc3RvcmFnZS5hcHA='),
+    messagingSenderId: _a('OTI5MTg3NzQwMTQ5'),
+    appId:             _a('MToxMDQ3NDE1MTYwMDE6d2ViOjg1MDc2ODg5MWJlMDg4NTVlZWM4YmM='),
+    databaseURL:       _a('aHR0cHM6Ly9jYXJuZXQtZC1lbnRyYWluZW1lbnQtZGVmYXVsdC1ydGRiLmV1cm9wZS13ZXN0MS5maXJlYmFzZWRhdGFiYXNlLmFwcA==')
+  };
+  try {
+    window._fbApp  = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(_cfg);
+    window._fbDb   = window._fbApp.firestore();
+    window._fbRtdb = window._fbApp.database();
+    window._fbConnected = true;
+  } catch(e) { console.warn('Firebase:', e.message); window._fbConnected = false; }
+})();
+
+function getFbDb()   { return window._fbDb   || null; }
+function getFbRtdb() { return window._fbRtdb  || null; }
+function isFbReady() { return window._fbConnected === true; }
+
+// ════════════════════════════════════════
+//  RGPD — FORMAT Prénom.N
+// ════════════════════════════════════════
+function getRGPDName(profile) {
+  if (!profile || !profile.prenom) return 'Inconnu';
+  return `${profile.prenom.trim()}.${(profile.nom||'?').trim().charAt(0).toUpperCase()}`;
+}
+
+// ════════════════════════════════════════
+//  CODE DE SESSION
+// ════════════════════════════════════════
+const SESSION_KEY = 'ct_session_v1';
+let activeSessionCode = '';
+
+function initSessionCode() {
+  const saved = localStorage.getItem(SESSION_KEY);
+  if (saved) {
+    try {
+      const p = JSON.parse(saved);
+      // Valid for 12 hours
+      if (p.code && p.ts && (Date.now() - p.ts) < 12 * 3600 * 1000) {
+        activeSessionCode = p.code;
+        loadProfileForSession(p.code);
+        hideSessionOverlay();
+        return;
+      }
+    } catch(e) {}
+  }
+  const ov = document.getElementById('sessionOverlay');
+  if (ov) { ov.style.display = 'flex'; setTimeout(()=>{ const inp=document.getElementById('sessionCodeInput'); if(inp) inp.focus(); },200); }
+}
+
+function openTeacherFromSession() {
+  // Teacher overlay z-index (9500) is above session overlay (9000)
+  // so it appears correctly on top without any z-index manipulation
+  openTeacher();
+}
+
+async function submitSessionCode() {
+  const input = (document.getElementById('sessionCodeInput').value || '').trim().toUpperCase();
+  const errEl = document.getElementById('sessionError');
+  if (errEl) errEl.textContent = '';
+  if (input.length < 4) { if(errEl) errEl.textContent = '⚠️ Code trop court — minimum 4 caractères'; return; }
+
+  const rtdb = getFbRtdb();
+  if (rtdb) {
+    try {
+      const snap = await rtdb.ref('ct_session_codes/active').once('value');
+      const active = snap.val();
+      if (active && active.toUpperCase() !== input) {
+        if (errEl) errEl.textContent = '❌ Code incorrect — vérifie avec ton professeur';
+        return;
+      }
+    } catch(e) { /* offline → accept any code */ }
+  }
+
+  activeSessionCode = input;
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ code: input, ts: Date.now() }));
+  loadProfileForSession(input);
+  hideSessionOverlay();
+  setTimeout(() => initPresenceSystem(), 500);
+}
+
+function hideSessionOverlay() {
+  const ov = document.getElementById('sessionOverlay');
+  if (!ov) return;
+  ov.style.transition = 'opacity .4s'; ov.style.opacity = '0';
+  setTimeout(() => { ov.style.display = 'none'; ov.style.opacity = ''; }, 420);
+}
+
+function loadProfileForSession(code) {
+  const saved = localStorage.getItem(`ct_profile_${code}`);
+  if (!saved) return;
+  try {
+    const p = JSON.parse(saved);
+    state.profile = p;
+    state.selectedMobile = p.mobile || 0;
+    state.selectedGender = p.gender || 'A';
+    saveState();
+    loadProfileForm();
+    updateStudentBadge();
+  } catch(e) {}
+}
+
+function saveProfileForSession() {
+  if (!activeSessionCode || !state.profile) return;
+  localStorage.setItem(`ct_profile_${activeSessionCode}`, JSON.stringify(state.profile));
+}
+
+// ════════════════════════════════════════
+//  PRÉSENCE TEMPS RÉEL
+// ════════════════════════════════════════
+let presenceRef = null;
+let presenceTeacherListener = null;
+
+function initPresenceSystem() {
+  const rtdb = getFbRtdb();
+  if (!rtdb || !state.profile || !state.profile.prenom || !activeSessionCode) return;
+  const rgpd = getRGPDName(state.profile);
+  const path = `ct_presence/${activeSessionCode}/${sanitizeId(rgpd)}`;
+  presenceRef = rtdb.ref(path);
+
+  presenceRef.onDisconnect().update({ status:'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP });
+  presenceRef.set({
+    rgpd, classe: state.profile.classe||'—', mobile: state.profile.mobile||0,
+    status:'online', lastSeen: firebase.database.ServerValue.TIMESTAMP, sessionCode: activeSessionCode
+  });
+
+  // Listen for teacher warnings
+  rtdb.ref(`ct_warnings/${activeSessionCode}/${sanitizeId(rgpd)}`).on('value', snap => {
+    const d = snap.val();
+    if (d && d.message && !d.read) {
+      showWarningBanner(d.message);
+      rtdb.ref(`ct_warnings/${activeSessionCode}/${sanitizeId(rgpd)}`).update({ read: true });
+    }
+  });
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('beforeunload', () => presenceRef && presenceRef.update({ status:'offline', lastSeen: Date.now() }));
+}
+
+function handleVisibilityChange() {
+  if (!presenceRef) return;
+  if (document.hidden) {
+    presenceRef.update({ status:'away', leftAt: firebase.database.ServerValue.TIMESTAMP, lastSeen: firebase.database.ServerValue.TIMESTAMP });
+    showWarningBanner('⚠️ Ton professeur peut voir que tu as quitté l\'application !');
+  } else {
+    presenceRef.update({ status:'online', lastSeen: firebase.database.ServerValue.TIMESTAMP });
+  }
+}
+
+function showWarningBanner(msg) {
+  const b = document.getElementById('warningBanner');
+  const t = document.getElementById('warningText');
+  if (b && t) { t.textContent = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'), 14000); }
+}
+
+function dismissWarning() {
+  document.getElementById('warningBanner').classList.remove('show');
+}
+
+// ── Vue enseignant — présence ──
+function loadPresence() {
+  const rtdb = getFbRtdb();
+  const container = document.getElementById('presenceList');
+  if (!rtdb || !container) return;
+
+  rtdb.ref('ct_session_codes/active').once('value').then(snap => {
+    const code = snap.val() || localStorage.getItem('ct_teacher_code') || '------';
+    const hEl = document.getElementById('presenceHeader');
+    if (hEl) hEl.innerHTML = `<span class="live-dot"></span>Code : <b style="color:var(--accent)">${code}</b>`;
+
+    if (presenceTeacherListener) rtdb.ref(`ct_presence/${code}`).off();
+    presenceTeacherListener = rtdb.ref(`ct_presence/${code}`).on('value', snap => {
+      const vals = Object.values(snap.val() || {});
+      renderPresenceList(vals, code);
+    });
+  }).catch(() => {
+    container.innerHTML = '<div style="text-align:center;padding:14px;color:var(--text3);font-size:.82rem;">Impossible de charger la présence</div>';
+  });
+}
+
+function renderPresenceList(students, code) {
+  const container = document.getElementById('presenceList');
+  if (!container) return;
+  if (!students.length) { container.innerHTML = '<div style="text-align:center;padding:14px;color:var(--text3);font-size:.82rem;">Aucun élève connecté pour ce code</div>'; return; }
+  const online = students.filter(s=>s.status==='online').length;
+  const away   = students.filter(s=>s.status==='away').length;
+  const off    = students.filter(s=>s.status==='offline').length;
+  container.innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+    <div style="text-align:center;padding:7px;background:rgba(81,207,102,.1);border-radius:7px;"><div style="font-size:1.4rem;font-weight:800;color:var(--green);">${online}</div><div style="font-size:.65rem;color:var(--text2);">🟢 Actifs</div></div>
+    <div style="text-align:center;padding:7px;background:rgba(255,212,59,.1);border-radius:7px;"><div style="font-size:1.4rem;font-weight:800;color:var(--yellow);">${away}</div><div style="font-size:.65rem;color:var(--text2);">🟡 Partis</div></div>
+    <div style="text-align:center;padding:7px;background:var(--bg3);border-radius:7px;"><div style="font-size:1.4rem;font-weight:800;color:var(--text3);">${off}</div><div style="font-size:.65rem;color:var(--text2);">⚫ Off</div></div>
+  </div>
+  ${students.sort((a,b)=>{const o={online:0,away:1,offline:2};return (o[a.status]||2)-(o[b.status]||2);}).map(s=>{
+    const isOn=s.status==='online', isAw=s.status==='away';
+    const color=isOn?'var(--green)':isAw?'var(--yellow)':'var(--text3)';
+    const bg=isAw?'rgba(255,212,59,.07)':isOn?'rgba(81,207,102,.05)':'var(--card2)';
+    const border=isAw?'rgba(255,212,59,.3)':isOn?'rgba(81,207,102,.2)':'var(--border)';
+    const lbl=isOn?'🟢 Actif':isAw?'🟡 Parti':'⚫ Hors ligne';
+    return `<div style="display:flex;align-items:center;gap:9px;padding:9px;background:${bg};border:1px solid ${border};border-radius:8px;margin-bottom:6px;">
+      <div style="flex:1;"><div style="font-weight:700;font-size:.9rem;">${s.rgpd||'?'}</div><div style="font-size:.7rem;color:var(--text2);">${s.classe||'—'}${s.mobile?` · M${s.mobile}`:''} · ${getTimeAgo(new Date(s.lastSeen||Date.now()))}</div></div>
+      <div style="text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+        <div style="font-size:.7rem;font-weight:700;color:${color};">${lbl}</div>
+        ${isAw?`<button style="font-size:.63rem;padding:3px 7px;border-radius:5px;border:none;background:var(--teacher);color:white;cursor:pointer;font-weight:600;" onclick="sendWarningToStudent('${code}','${sanitizeId(s.rgpd||'')}')">⚠️ Alerter</button>`:''}
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+function sendWarningToStudent(code, studentId) {
+  const rtdb = getFbRtdb();
+  if (!rtdb) return;
+  rtdb.ref(`ct_warnings/${code}/${studentId}`).set({
+    message: '⚠️ Ton professeur te demande de revenir sur l\'application !',
+    sentAt: firebase.database.ServerValue.TIMESTAMP, read: false
+  });
+  showToast('✅ Alerte envoyée !');
+}
+
+// ── Code de session — enseignant ──
+function generateNewSessionCode() {
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  setActiveSessionCode(code);
+}
+
+function setCustomSessionCode() {
+  const v=(document.getElementById('customCodeInput').value||'').trim().toUpperCase();
+  if(v.length<4){showToast('⚠️ Min. 4 caractères',true);return;}
+  setActiveSessionCode(v);
+}
+
+function setActiveSessionCode(code) {
+  const rtdb=getFbRtdb();
+  if(rtdb) rtdb.ref('ct_session_codes/active').set(code);
+  const disp=document.getElementById('teacherSessionCodeDisplay');
+  if(disp) disp.innerHTML=`${code}<small>Code séance actif — écris-le au tableau</small>`;
+  localStorage.setItem('ct_teacher_code', code);
+  showToast(`✅ Code : ${code}`);
+}
+
+function copySessionCode() {
+  const disp=document.getElementById('teacherSessionCodeDisplay');
+  if(!disp) return;
+  const code=disp.childNodes[0].textContent.trim();
+  if(navigator.clipboard) navigator.clipboard.writeText(code).then(()=>showToast('📋 Code copié !'));
+}
+
+function loadTeacherSessionCode() {
+  const rtdb=getFbRtdb();
+  const disp=document.getElementById('teacherSessionCodeDisplay');
+  if(!disp) return;
+  const local=localStorage.getItem('ct_teacher_code');
+  if(local) disp.innerHTML=`${local}<small>Code séance actif</small>`;
+  if(rtdb) rtdb.ref('ct_session_codes/active').once('value').then(s=>{const c=s.val();if(c&&disp) disp.innerHTML=`${c}<small>Code séance actif</small>`;});
+}
+
+function updateSyncBanner(connected) {
+  const status = document.getElementById('syncStatus');
+  const lastLabel = document.getElementById('lastSyncLabel');
+  if (!status) return;
+  if (connected) {
+    status.innerHTML = '<span class="sync-dot dot-ok"></span>Synchronisation active';
+    const lastSync = state.profile && state.profile.lastSync;
+    if (lastSync && lastLabel) lastLabel.textContent = `Dernière sync : ${new Date(lastSync).toLocaleString('fr-FR')}`;
+  } else {
+    status.innerHTML = '<span class="sync-dot dot-warn"></span>Hors ligne — vérifie ta connexion';
+  }
+}
+
+async function syncToFirebase() {
+  const db = getFbDb();
+  if (!db) { showToast('⚠️ Connexion Firebase indisponible', true); return; }
+  if (!state.profile || !state.profile.prenom || !state.profile.nom) {
+    showToast('⚠️ Enregistre ton profil d\'abord', true); return;
+  }
+  const btn = document.getElementById('syncBtn');
+  if (btn) { btn.innerHTML = '⏳...'; btn.disabled = true; }
+  try {
+    // RGPD : utilise Prénom.N comme identifiant public + code session
+    const rgpd = getRGPDName(state.profile);
+    const docId = sanitizeId(`${activeSessionCode||'nosession'}_${rgpd}`);
+    const data = {
+      rgpdName:     rgpd,                         // Prénom.N — seul identifiant visible
+      classe:       state.profile.classe || '—',
+      mobile:       state.profile.mobile || null,
+      aflChoice:    state.profile.aflChoice || null,
+      gender:       state.profile.gender || 'A',
+      sessionCode:  activeSessionCode || '',
+      wod:          state.wod || null,
+      skillLogs:    state.skillLogs || {},
+      sessions:     (state.sessions || []).slice(0, 20),
+      lastSync:     firebase.firestore.FieldValue.serverTimestamp(),
+      syncDate:     new Date().toISOString(),
+      sessionCount: (state.sessions || []).length,
+      skillsTested: Object.keys(state.skillLogs || {}).filter(k => state.skillLogs[k].length > 0).length,
+    };
+    await db.collection('crosstraining_students').doc(docId).set(data, { merge: true });
+    const now = new Date().toISOString();
+    if (state.profile) state.profile.lastSync = now;
+    saveState();
+    updateSyncBanner(true);
+    showToast(`✅ Sync : ${rgpd}`);
+  } catch(e) {
+    console.error(e);
+    showToast('❌ Erreur sync : ' + e.message, true);
+  }
+  if (btn) { btn.innerHTML = '📤 Sync'; btn.disabled = false; }
+}
+
+function sanitizeId(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]/g,'_').toLowerCase().slice(0,100);
+}
+
+// ════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else {
+    const map = ['profil','skills','wod','seances','analyse','bilan'];
+    const i = map.indexOf(name);
+    if (i >= 0) document.querySelectorAll('.nav-btn')[i].classList.add('active');
+  }
+  if (name === 'analyse') renderAnalysis();
+  if (name === 'bilan') renderBilan();
+  if (name === 'seances') renderSessionsList();
+}
+
+// ════════════════════════════════════════
+//  PROFIL
+// ════════════════════════════════════════
+function saveProfile() {
+  const prenom = document.getElementById('pPrenom').value.trim();
+  const nom    = document.getElementById('pNom').value.trim();
+  const classe = document.getElementById('pClasse').value.trim();
+  const age    = parseInt(document.getElementById('pAge').value) || 17;
+  const mobile = state.selectedMobile || 0;
+  const gender = state.selectedGender || 'A';
+  const aflChoice = document.getElementById('pAFLChoice').value;
+  if (!prenom || !nom)  { showToast('⚠️ Prénom et nom obligatoires', true); return; }
+  if (!classe)          { showToast('⚠️ Indique ta classe', true); return; }
+  state.profile = { prenom, nom, classe, age, gender, mobile: mobile||null, aflChoice: aflChoice||null, lastSync: state.profile&&state.profile.lastSync||null };
+  saveState();
+  saveProfileForSession();          // ← persist per session code
+  updateStudentBadge();
+  renderSkills(currentFamily);
+  if (activeSessionCode && !presenceRef) initPresenceSystem(); // ← init presence
+  showToast('✅ Profil enregistré !');
+}
+
+function selectGender(g) {
+  state.selectedGender = g;
+  ['H','F','A'].forEach(x => document.getElementById('genderCard'+x).classList.toggle('selected', x===g));
+}
+
+function selectMobile(n) {
+  state.selectedMobile = n;
+  document.getElementById('mobileCard1').classList.toggle('selected', n === 1);
+  document.getElementById('mobileCard2').classList.toggle('selected', n === 2);
+  document.getElementById('clearMobileBtn').style.display = 'block';
+  const info = document.getElementById('mobileInfo');
+  info.style.display = 'block';
+  info.innerHTML = n === 1
+    ? '⚡ <b>Mobile 1 — Explosivité</b> · FC cible : 85–95% FCmax · WOD type : TABATA, FOR TIME'
+    : '🫀 <b>Mobile 2 — Endurance</b> · FC cible : 65–80% FCmax · WOD type : AMRAP, EMOM, E2MOM';
+}
+
+function clearMobile() {
+  state.selectedMobile = 0;
+  document.getElementById('mobileCard1').classList.remove('selected');
+  document.getElementById('mobileCard2').classList.remove('selected');
+  document.getElementById('mobileInfo').style.display = 'none';
+  document.getElementById('clearMobileBtn').style.display = 'none';
+}
+
+function updateStudentBadge() {
+  if (state.profile && state.profile.prenom) {
+    document.getElementById('studentBadge').textContent = `👤 ${state.profile.prenom}`;
+  }
+}
+
+function loadProfileForm() {
+  if (!state.profile) return;
+  const p = state.profile;
+  document.getElementById('pPrenom').value = p.prenom || '';
+  document.getElementById('pNom').value    = p.nom    || '';
+  document.getElementById('pClasse').value = p.classe || '';
+  document.getElementById('pAge').value    = p.age    || 17;
+  document.getElementById('pAFLChoice').value = p.aflChoice || '';
+  if (p.gender) { state.selectedGender = p.gender; selectGender(p.gender); }
+  if (p.mobile) selectMobile(p.mobile);
+}
+
+// ════════════════════════════════════════
+//  SKILLS
+// ════════════════════════════════════════
+let currentFamily = 'all';
+
+function renderSkills(family = 'all') {
+  const filtered = family === 'all' ? SKILLS_DATA : SKILLS_DATA.filter(s => s.family === family);
+  document.getElementById('skillsContainer').innerHTML = filtered.map(sk => renderSkillCard(sk)).join('');
+}
+
+function renderSkillCard(skill) {
+  const gender = getGender();
+  const logs = state.skillLogs[skill.id] || [];
+  const last = logs[logs.length - 1];
+  const gLabel = gender==='H'?'♂️ Homme':gender==='F'?'♀️ Femme':'⚧️ Tous niveaux';
+  return `<div class="skill-card" id="skillcard-${skill.id}">
+    <div class="skill-header" onclick="toggleSkill('${skill.id}')">
+      <div class="skill-emoji">${skill.emoji}</div>
+      <div class="skill-info">
+        <div class="skill-name">${skill.name}</div>
+        <span class="skill-family-tag ${FAMILY_COLORS[skill.family]}">${FAMILY_LABELS[skill.family]}</span>
+        ${last ? `<div style="font-size:.68rem;color:var(--green);margin-top:2px;">✅ Testé · ${last.validReps||last.reps||0} rép valides · Intensité ${last.intensity||0}/5</div>` : ''}
+      </div>
+      <span class="skill-chevron" id="chevron-${skill.id}">▶</span>
+    </div>
+    <div class="skill-body" id="body-${skill.id}">
+      <p style="font-size:.8rem;color:var(--text2);line-height:1.5;padding:8px 0;">${skill.description}</p>
+      <div class="card-title" style="margin-top:0">💪 Muscles</div>
+      <div class="muscles-list">${skill.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
+      <div class="card-title">📊 Niveaux <span style="font-size:.68rem;color:var(--text3);margin-left:4px;">${gLabel}</span></div>
+      <table class="levels-table">
+        <thead><tr><th>Niv.</th><th>Description</th><th>Pts</th></tr></thead>
+        <tbody>${skill.levels.map(l=>`<tr>
+          <td><span class="level-badge lv${l.level}">${l.level}</span></td>
+          <td>${getLevelDesc(l, gender)}</td>
+          <td><b>${l.points}</b></td>
+        </tr>`).join('')}</tbody>
+      </table>
+
+      <div class="card-title mt8">📝 Mode Juge — Mon test</div>
+      <div class="form-group">
+        <label class="form-label">Niveau réalisé</label>
+        <select class="form-input" id="log-level-${skill.id}">
+          ${skill.levels.map(l=>`<option value="${l.level}">Niv. ${l.level} — ${getLevelDesc(l,gender).substring(0,38)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">⚖️ Comptage des répétitions (mode juge)</label>
+        <div class="judge-panel">
+          <button class="judge-btn btn-valid" onclick="skillJudgeRep('${skill.id}','valid')">
+            <span class="jcount" id="sk-valid-${skill.id}">0</span>
+            <span class="jlabel">✅ VALIDE</span>
+          </button>
+          <button class="judge-btn btn-norep" onclick="skillJudgeRep('${skill.id}','norep')">
+            <span class="jcount" id="sk-norep-${skill.id}">0</span>
+            <span class="jlabel">❌ NO REP</span>
+          </button>
+        </div>
+        <div class="judge-score">
+          <div style="text-align:center;"><div class="score-valid" id="sk-total-${skill.id}">0</div><div class="score-label">Rép valides</div></div>
+          <div style="color:var(--border);">|</div>
+          <div style="text-align:center;"><div class="score-norep" id="sk-nrtotal-${skill.id}">0</div><div class="score-label">No reps</div></div>
+          <div style="color:var(--border);">|</div>
+          <div style="text-align:center;"><div style="font-weight:800;font-size:1rem;color:var(--text2);" id="sk-pct-${skill.id}">—</div><div class="score-label">% validité</div></div>
+        </div>
+        <button class="btn btn-secondary btn-sm mt8" onclick="skillJudgeReset('${skill.id}')" style="width:auto;">↺ Réinitialiser</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Intensité ressentie (1=facile → 5=impossible)</label>
+        <div class="intensity-scale">${[1,2,3,4,5].map(n=>`<button class="scale-btn" onclick="selectSkillIntensity('${skill.id}',${n},this)">${n}</button>`).join('')}</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Commentaire</label>
+        <input type="text" class="form-input" id="log-comment-${skill.id}" placeholder="Ressenti, technique, points à améliorer...">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveSkillLog('${skill.id}')">💾 Enregistrer mon test</button>
+      ${last ? `<div style="margin-top:10px;padding:9px;background:var(--bg3);border-radius:7px;font-size:.78rem;">
+        <div style="color:var(--text3);">🕐 ${new Date(last.date).toLocaleDateString('fr-FR')}</div>
+        <div style="margin-top:3px;">Niv. ${last.level} · <span style="color:var(--green);">${last.validReps||last.reps||0} valides</span>${last.noReps?` · <span style="color:var(--accent2);">${last.noReps} no rep</span>`:''} · Intensité ${last.intensity||0}/5</div>
+        ${last.comment?`<div style="color:var(--text2);font-style:italic;margin-top:2px;">"${last.comment}"</div>`:''}
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+
+// Judge counters for skills
+if (!window._skillJudge) window._skillJudge = {};
+
+function skillJudgeRep(skillId, type) {
+  if (!window._skillJudge[skillId]) window._skillJudge[skillId] = {valid:0, norep:0};
+  if (type === 'valid') window._skillJudge[skillId].valid++;
+  else window._skillJudge[skillId].norep++;
+  const v = window._skillJudge[skillId].valid;
+  const n = window._skillJudge[skillId].norep;
+  const total = v + n;
+  document.getElementById('sk-valid-'+skillId).textContent = v;
+  document.getElementById('sk-norep-'+skillId).textContent = n;
+  document.getElementById('sk-total-'+skillId).textContent = v;
+  document.getElementById('sk-nrtotal-'+skillId).textContent = n;
+  document.getElementById('sk-pct-'+skillId).textContent = total > 0 ? Math.round(v/total*100)+'%' : '—';
+}
+
+function skillJudgeReset(skillId) {
+  window._skillJudge[skillId] = {valid:0, norep:0};
+  ['valid','norep','total','nrtotal'].forEach(k => {
+    const el = document.getElementById('sk-'+k+'-'+skillId); if(el) el.textContent = k.includes('total') ? '0' : '0';
+  });
+  document.getElementById('sk-pct-'+skillId).textContent = '—';
+}
+
+function saveSkillLog(skillId) {
+  const judge = (window._skillJudge && window._skillJudge[skillId]) || {valid:0, norep:0};
+  const log = {
+    date:       new Date().toISOString(),
+    level:      parseInt(document.getElementById('log-level-'+skillId).value) || 1,
+    intensity:  (state._tempIntensity && state._tempIntensity[skillId]) || 0,
+    validReps:  judge.valid,
+    noReps:     judge.norep,
+    reps:       judge.valid, // compat
+    comment:    document.getElementById('log-comment-'+skillId).value.trim()
+  };
+  if (!state.skillLogs[skillId]) state.skillLogs[skillId] = [];
+  state.skillLogs[skillId].push(log);
+  // Reset judge counters
+  skillJudgeReset(skillId);
+  saveState();
+  showToast('✅ Test enregistré !');
+  renderSkills(currentFamily);
+}
+
+function toggleSkill(id) {
+  const body = document.getElementById('body-'+id);
+  const chev = document.getElementById('chevron-'+id);
+  const was = body.classList.contains('open');
+  document.querySelectorAll('.skill-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.skill-chevron').forEach(c=>c.classList.remove('open'));
+  if (!was) { body.classList.add('open'); chev.classList.add('open'); }
+}
+
+function filterFamily(family, tab) {
+  currentFamily = family;
+  document.querySelectorAll('.family-tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  renderSkills(family);
+}
+
+function selectSkillIntensity(skillId, val, btn) {
+  btn.parentElement.querySelectorAll('.scale-btn').forEach(b=>b.className='scale-btn');
+  btn.classList.add(`a${val}`);
+  if (!state._tempIntensity) state._tempIntensity = {};
+  state._tempIntensity[skillId] = val;
+}
+
+// ════════════════════════════════════════
+//  WOD BUILDER
+// ════════════════════════════════════════
+let wodSlotCount = 4;
+let wodExercises = [null, null, null, null];
+let selectedWodType = '';
+
+// ── WOD MOBILE CHOICE ──
+let wodMobile = 0; // 0=tester, 1=explosivité, 2=endurance
+
+function selectWodMobile(n) {
+  wodMobile = n;
+  [0,1,2].forEach(i => document.getElementById('wodMobileCard'+i).classList.remove('selected'));
+  document.getElementById('wodMobileCard'+n).classList.add('selected');
+  const hint = document.getElementById('wodMobileHint');
+  hint.style.display = 'block';
+  if (n === 1) hint.innerHTML = '⚡ <b>Mobile 1 — Explosivité</b> : effort difficile à très intense · FC cible 85–95% FCmax · WOD recommandé : TABATA, FOR TIME';
+  else if (n === 2) hint.innerHTML = '🫀 <b>Mobile 2 — Endurance</b> : effort moyen à difficile · FC cible 65–80% FCmax · WOD recommandé : AMRAP, EMOM, E2MOM (15–20 min continus)';
+  else hint.innerHTML = '🔄 <b>Mode découverte</b> : tu vas tester les ressentis pour choisir ton mobile définitif. Note bien tes sensations !';
+  validateWOD();
+}
+
+// ── WOD TYPE SELECTION ──
+function selectWodType(type, btn) {
+  selectedWodType = type;
+  document.querySelectorAll('.wod-type-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const info = document.getElementById('wodTypeInfo');
+  info.style.display = 'block';
+  info.textContent = WOD_TYPE_INFO[type] || '';
+  document.getElementById('wodParamsTypeLabel').textContent = type;
+  renderWodParams(type);
+  validateWOD();
+}
+
+function renderWodParams(type) {
+  const el = document.getElementById('wodParamsDynamic');
+  if (type === 'TABATA') {
+    el.innerHTML = `
+      <div style="background:rgba(247,100,30,.08);border:1px solid rgba(247,100,30,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6;">
+        🔴 <b>TABATA</b> : Alterne effort et récupération. Le temps de repos est <b>obligatoire</b> pour maintenir l'intensité Mobile 1.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">⚡ Temps d'effort (s)</label>
+          <input type="number" class="form-input" id="wodEffortTime" value="20" min="10" max="60" style="text-align:center;">
+          <div style="font-size:.68rem;color:var(--text3);margin-top:3px;">Ex: 20s ou 40s</div>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">😮‍💨 Temps de repos (s)</label>
+          <input type="number" class="form-input" id="wodRest" value="10" min="5" max="60" style="text-align:center;">
+          <div style="font-size:.68rem;color:var(--text3);margin-top:3px;">Ex: 10s ou 20s</div>
+        </div>
+      </div>
+      <div class="form-group mt8">
+        <label class="form-label">🔄 Nombre de séries</label>
+        <input type="number" class="form-input" id="wodRounds" value="8" min="2" max="20">
+      </div>
+      <div id="tabataPreview" style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:7px;font-size:.78rem;color:var(--accent);"></div>`;
+    // Listener pour preview
+    setTimeout(() => {
+      ['wodEffortTime','wodRest','wodRounds'].forEach(id => {
+        const el2 = document.getElementById(id);
+        if (el2) el2.addEventListener('input', updateTabataPreview);
+      });
+      updateTabataPreview();
+    }, 100);
+  } else if (type === 'EMOM') {
+    el.innerHTML = `
+      <div style="background:rgba(77,171,247,.08);border:1px solid rgba(77,171,247,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6;">
+        🔵 <b>EMOM</b> : 1 round = tous tes exercices · Chaque minute, tu recommences. Si tu finis en 40s → 20s de repos. <b>Le repos est ce qui reste de ta minute.</b>
+      </div>
+      <div class="form-group">
+        <label class="form-label">💪 Reps visées par exercice</label>
+        <input type="number" class="form-input" id="wodReps" value="10" min="1" max="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">⏱ Durée de travail estimée par round (s)</label>
+        <input type="number" class="form-input" id="wodEffortTime" value="40" min="10" max="59" oninput="updateEmomPreview()">
+        <div style="font-size:.68rem;color:var(--text3);margin-top:3px;">Combien de secondes pour finir 1 round ?</div>
+      </div>
+      <div id="emomPreview" style="padding:8px;background:var(--bg3);border-radius:7px;font-size:.78rem;"></div>
+      <div class="form-group mt8">
+        <label class="form-label">🔁 Nombre de minutes (rounds)</label>
+        <input type="number" class="form-input" id="wodRounds" value="10" min="1" max="20">
+      </div>`;
+    setTimeout(() => updateEmomPreview(), 100);
+  } else if (type === 'E2MOM') {
+    el.innerHTML = `
+      <div style="background:rgba(204,93,232,.08);border:1px solid rgba(204,93,232,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6;">
+        🟣 <b>E2MOM</b> : 1 round = tous tes exercices · Toutes les 2 minutes, tu recommences. Si tu finis en 1min30 → 30s de repos. <b>Le repos est ce qui reste de tes 2 minutes.</b>
+      </div>
+      <div class="form-group">
+        <label class="form-label">💪 Reps visées par exercice</label>
+        <input type="number" class="form-input" id="wodReps" value="10" min="1" max="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">⏱ Durée de travail estimée par round (s)</label>
+        <input type="number" class="form-input" id="wodEffortTime" value="90" min="30" max="119" oninput="updateE2momPreview()">
+        <div style="font-size:.68rem;color:var(--text3);margin-top:3px;">Combien de secondes pour finir 1 round ? (max 119s)</div>
+      </div>
+      <div id="e2momPreview" style="padding:8px;background:var(--bg3);border-radius:7px;font-size:.78rem;"></div>
+      <div class="form-group mt8">
+        <label class="form-label">🔁 Nombre de rounds (×2 min)</label>
+        <input type="number" class="form-input" id="wodRounds" value="10" min="1" max="15">
+      </div>`;
+    setTimeout(() => updateE2momPreview(), 100);
+  } else if (type === 'AMRAP') {
+    el.innerHTML = `
+      <div style="background:rgba(81,207,102,.08);border:1px solid rgba(81,207,102,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6;">
+        🟢 <b>AMRAP</b> : Pas de repos imposé — l'effort est continu. Idéal Mobile 2 (endurance). <i>Repos optionnel si besoin en cours de séance.</i>
+      </div>
+      <div class="form-group">
+        <label class="form-label">💪 Reps visées par exercice</label>
+        <input type="number" class="form-input" id="wodReps" value="10" min="1" max="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">😮‍💨 Repos d'urgence prévu (s) <span style="font-size:.7rem;color:var(--text3);">(optionnel)</span></label>
+        <input type="number" class="form-input" id="wodRest" value="0" min="0" max="60">
+        <div style="font-size:.68rem;color:var(--text3);margin-top:3px;">0 = pas de repos prévu (idéal AMRAP)</div>
+      </div>`;
+  } else if (type === 'FORTIME') {
+    el.innerHTML = `
+      <div style="background:rgba(255,212,59,.08);border:1px solid rgba(255,212,59,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6;">
+        🟡 <b>FOR TIME</b> : Termine la charge de travail le plus vite possible. Repos possible mais il ralentit ton temps.
+      </div>
+      <div class="form-group">
+        <label class="form-label">🔁 Nombre de rounds</label>
+        <input type="number" class="form-input" id="wodRounds" value="4" min="1" max="20">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💪 Reps par exercice</label>
+        <input type="number" class="form-input" id="wodReps" value="10" min="1" max="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">😮‍💨 Repos prévu entre rounds (s) <span style="font-size:.7rem;color:var(--text3);">(optionnel)</span></label>
+        <input type="number" class="form-input" id="wodRest" value="0" min="0" max="120">
+        <div style="font-size:.68rem;color:var(--text3);margin-top:3px;">0 = pas de repos prévu (plus rapide)</div>
+      </div>`;
+  }
+}
+
+function updateTabataPreview() {
+  const e = parseInt(document.getElementById('wodEffortTime')?.value)||20;
+  const r = parseInt(document.getElementById('wodRest')?.value)||10;
+  const s = parseInt(document.getElementById('wodRounds')?.value)||8;
+  const total = (e + r) * s;
+  const el = document.getElementById('tabataPreview');
+  if (el) el.innerHTML = `📊 1 série = ${e}s effort + ${r}s repos = ${e+r}s · ${s} séries = <b>${Math.round(total/60*10)/10} min</b> total`;
+}
+
+function updateEmomPreview() {
+  const work = parseInt(document.getElementById('wodEffortTime')?.value)||40;
+  const rest = 60 - work;
+  const el = document.getElementById('emomPreview');
+  if (el) {
+    if (rest <= 0) el.innerHTML = `<span style="color:var(--accent2)">⚠️ Durée trop longue — réduis les reps</span>`;
+    else el.innerHTML = `⚡ Travail : ~${work}s · 😮‍💨 Repos prévu : <b style="color:var(--green)">${rest}s</b> par minute`;
+  }
+}
+
+function updateE2momPreview() {
+  const work = parseInt(document.getElementById('wodEffortTime')?.value)||90;
+  const rest = 120 - work;
+  const el = document.getElementById('e2momPreview');
+  if (el) {
+    if (rest <= 0) el.innerHTML = `<span style="color:var(--accent2)">⚠️ Dépasse 2 minutes — réduis les reps</span>`;
+    else el.innerHTML = `⚡ Travail : ~${work}s · 😮‍💨 Repos prévu : <b style="color:var(--green)">${rest}s</b> (${Math.floor(rest/60)}min${rest%60>0?' '+rest%60+'s':''})</b>`;
+  }
+}
+
+function addWodSlot() {
+  const idx = wodSlotCount;
+  wodExercises.push(null);
+  const div = document.createElement('div');
+  div.className = 'wod-exercise-slot'; div.id = 'slot-'+idx;
+  div.setAttribute('onclick', `openSkillPicker(${idx})`);
+  div.innerHTML = `<div class="slot-number">${idx+1}</div><div class="slot-content"><div style="color:var(--text3)">Touche pour choisir</div></div><div>➕</div>`;
+  document.getElementById('wodSlots').appendChild(div);
+  wodSlotCount++;
+}
+
+function openSkillPicker(slotIdx) {
+  state.currentSlot = slotIdx;
+  const gender = getGender();
+  document.getElementById('skillPickerList').innerHTML = SKILLS_DATA.map(skill => `
+    <div style="padding:11px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:11px;align-items:center;" onclick="openLevelPicker(${slotIdx},'${skill.id}')">
+      <span style="font-size:1.4rem;">${skill.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:.88rem;">${skill.name}</div>
+        <span class="skill-family-tag ${FAMILY_COLORS[skill.family]}" style="font-size:.65rem;">${FAMILY_LABELS[skill.family]}</span>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:2px;">${skill.muscles.slice(0,3).join(' · ')}</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--text3);">${skill.levels.length} niveaux →</div>
+    </div>`).join('');
+  document.getElementById('skillPickerModal').classList.add('open');
+}
+
+function openLevelPicker(slotIdx, skillId) {
+  const skill = SKILLS_DATA.find(s => s.id === skillId);
+  const gender = getGender();
+  state.currentSlot = slotIdx;
+  state._pendingSkillId = skillId;
+  document.getElementById('levelPickerTitle').textContent = `${skill.emoji} ${skill.name} — Choisis ton niveau`;
+  const lvlColors = ['','var(--green)','var(--yellow)','var(--accent)','var(--accent2)'];
+  document.getElementById('levelPickerList').innerHTML = skill.levels.map(l => `
+    <div class="level-pick-card" onclick="pickSkillWithLevel(${slotIdx},'${skillId}',${l.level})" style="border-left:4px solid ${lvlColors[l.level]||'var(--border)'};">
+      <div class="lpc-header">
+        <span class="level-badge lv${l.level}">${l.level}</span>
+        <span style="font-weight:700;font-size:.9rem;">Niveau ${l.level}</span>
+        <span class="lpc-pts">${l.points} pt${l.points>1?'s':''} Bac</span>
+      </div>
+      <div style="font-size:.83rem;color:var(--text);">${getLevelDesc(l, gender)}</div>
+      ${gender==='A' && l.descH && l.descF ? `<div style="font-size:.7rem;color:var(--text3);margin-top:3px;">♂️ ${l.descH} · ♀️ ${l.descF}</div>` : ''}
+    </div>`).join('');
+  closeModal('skillPickerModal');
+  document.getElementById('levelPickerModal').classList.add('open');
+}
+
+function pickSkillWithLevel(slotIdx, skillId, chosenLevel) {
+  const skill = SKILLS_DATA.find(s => s.id === skillId);
+  const gender = getGender();
+  const lvl = skill.levels.find(l => l.level === chosenLevel);
+  wodExercises[slotIdx] = { skillId, level: chosenLevel };
+  const slot = document.getElementById('slot-'+slotIdx);
+  slot.classList.add('filled');
+  const lvlColors = {'1':'var(--green)','2':'var(--yellow)','3':'var(--accent)','4':'var(--accent2)'};
+  slot.innerHTML = `
+    <div class="slot-number" style="background:${lvlColors[chosenLevel]||'var(--accent)'};color:${chosenLevel<=2?'#111':'white'};">${slotIdx+1}</div>
+    <div class="slot-content">
+      <div style="font-weight:700;">${skill.emoji} ${skill.name}</div>
+      <div class="slot-detail" style="color:${lvlColors[chosenLevel]||'var(--accent)'};">
+        <b>Niveau ${chosenLevel}</b> — ${getLevelDesc(lvl, gender).substring(0,36)}
+        <button style="background:none;border:none;color:var(--text3);font-size:.7rem;cursor:pointer;margin-left:4px;" onclick="event.stopPropagation();openLevelPicker(${slotIdx},'${skillId}')" title="Changer le niveau">✏️</button>
+      </div>
+      <div class="slot-detail" style="margin-top:2px;">${skill.muscles.slice(0,2).join(', ')}</div>
+    </div>
+    <div class="slot-remove" onclick="removeSlotExercise(${slotIdx},event)">✕</div>`;
+  slot.setAttribute('onclick','');
+  closeModal('levelPickerModal');
+  validateWOD();
+}
+
+function setSlotLevel(idx, level) { if (wodExercises[idx]) wodExercises[idx].level = parseInt(level); }
+
+function removeSlotExercise(idx, event) {
+  event.stopPropagation();
+  wodExercises[idx] = null;
+  const slot = document.getElementById('slot-'+idx);
+  slot.classList.remove('filled');
+  slot.innerHTML = `<div class="slot-number">${idx+1}</div><div class="slot-content"><div style="color:var(--text3)">Touche pour choisir</div></div><div>➕</div>`;
+  slot.setAttribute('onclick', `openSkillPicker(${idx})`);
+  validateWOD();
+}
+
+function validateWOD() {
+  const filled = wodExercises.filter(e => e);
+  const families = [...new Set(filled.map(e => { const s = SKILLS_DATA.find(x=>x.id===e.skillId); return s ? s.family : ''; }).filter(Boolean))];
+  const hasUpper = families.some(f=>['force','explosivite'].includes(f));
+  const hasCardio = families.includes('cardio');
+  const hasCore = families.includes('resistance');
+  const ok4 = filled.length >= 4;
+  document.getElementById('wodValidation').innerHTML = `
+    <div class="validation-item ${ok4?'v-ok':'v-err'}">${ok4?'✅':'❌'} ${filled.length}/4 exercices minimum</div>
+    <div class="validation-item ${hasUpper?'v-ok':'v-warn'}">${hasUpper?'✅':'⚠️'} Haut/bas du corps : ${hasUpper?'OK':'Ajouter Force ou Explosivité'}</div>
+    <div class="validation-item ${hasCardio?'v-ok':'v-warn'}">${hasCardio?'✅':'⚠️'} Cardio : ${hasCardio?'OK':'Recommandé'}</div>
+    <div class="validation-item ${hasCore?'v-ok':'v-warn'}">${hasCore?'✅':'⚠️'} Core/Abdominaux : ${hasCore?'OK':'Recommandé'}</div>
+    <div class="validation-item ${families.length>=2?'v-ok':'v-warn'}">${families.length>=2?'✅':'⚠️'} ${families.length} famille(s) de mouvements</div>`;
+  // Mobile match : priorité au choix dans le WOD, sinon profil
+  const mobile = wodMobile || (state.profile && state.profile.mobile) || 0;
+  const mEl = document.getElementById('wodMobileMatch');
+  if (mobile && mobile !== 0 && selectedWodType) {
+    const m1types = ['TABATA','FORTIME'];
+    const isM1type = m1types.includes(selectedWodType);
+    const match = (mobile === 1 && isM1type) || (mobile === 2 && !isM1type);
+    mEl.style.background = match ? 'rgba(81,207,102,.1)' : 'rgba(247,100,30,.08)';
+    mEl.style.border = `1px solid ${match ? 'var(--green)' : 'var(--accent)'}`;
+    mEl.innerHTML = match
+      ? `<span style="color:var(--green)">✅ Type WOD cohérent avec Mobile ${mobile}</span>`
+      : `<span style="color:var(--yellow)">⚠️ Mobile ${mobile} recommande : ${mobile===1?'TABATA ou FORTIME':'AMRAP, EMOM ou E2MOM'}</span>`;
+  } else if (selectedWodType) {
+    mEl.style.background = 'rgba(90,90,122,.08)';
+    mEl.style.border = '1px solid var(--border)';
+    mEl.innerHTML = `<span style="color:var(--text3)">ℹ️ Choisis un mobile pour voir la cohérence avec le type de WOD</span>`;
+  }
+}
+
+function saveWOD() {
+  const filled = wodExercises.filter(e => e);
+  if (filled.length < 4) { showToast('⚠️ Minimum 4 exercices requis', true); return; }
+  if (!selectedWodType) { showToast('⚠️ Choisis un type de WOD', true); return; }
+  // Collect params depending on type
+  const getVal = (id, def) => { const el = document.getElementById(id); return el ? (parseInt(el.value)||def) : def; };
+  state.wod = {
+    type:        selectedWodType,
+    mobile:      wodMobile || (state.profile && state.profile.mobile) || 0,
+    duration:    getVal('wodDuration', 18),
+    exercises:   wodExercises.filter(Boolean),
+    rounds:      getVal('wodRounds', 5),
+    reps:        getVal('wodReps', 10),
+    rest:        getVal('wodRest', 0),
+    effortTime:  getVal('wodEffortTime', 0),
+    createdAt:   new Date().toISOString()
+  };
+  saveState();
+  showToast('✅ WOD enregistré !');
+}
+
+// ════════════════════════════════════════
+//  SESSIONS
+// ════════════════════════════════════════
+let preLaunchMobile = 0;
+
+function prepLaunchSession() {
+  if (!state.wod) { showToast('⚠️ Construis d\'abord ton WOD !', true); return; }
+  // Pré-remplir mobile
+  preLaunchMobile = state.wod.mobile || (state.profile && state.profile.mobile) || 0;
+  document.getElementById('preMobileCard1').classList.toggle('selected', preLaunchMobile === 1);
+  document.getElementById('preMobileCard2').classList.toggle('selected', preLaunchMobile === 2);
+  document.getElementById('judgeNameInput').value = '';
+  document.getElementById('preLaunchModal').classList.add('open');
+}
+
+function setPreMobile(n) {
+  preLaunchMobile = n;
+  document.getElementById('preMobileCard1').classList.toggle('selected', n === 1);
+  document.getElementById('preMobileCard2').classList.toggle('selected', n === 2);
+}
+
+function confirmLaunch() {
+  const judgeName = document.getElementById('judgeNameInput').value.trim();
+  if (!judgeName) { showToast('⚠️ Le prénom du juge est obligatoire', true); return; }
+  closeModal('preLaunchModal');
+  launchSession(judgeName, preLaunchMobile);
+}
+
+function launchSession(judgeName, sessionMobile) {
+  showSection('seances');
+  document.getElementById('sessionActive').style.display = 'block';
+  document.getElementById('sessionHistory').style.display = 'none';
+
+  const w = state.wod;
+  const mobile = sessionMobile || w.mobile || (state.profile && state.profile.mobile) || 0;
+
+  state.currentSession = {
+    date: new Date().toISOString(),
+    wod: { ...w },
+    judgeName: judgeName || '—',
+    sessionMobile: mobile,
+    exerciseRounds: {},
+    exerciseLevels: {},
+    judgeData: {},
+    effort: 0, muscleFeel: '', fc: 0, score: 0, comment: ''
+  };
+
+  // ── WOD recap banner ──
+  const mobileLabel = mobile===1 ? '⚡ Mobile 1 — Explosivité'
+                    : mobile===2 ? '🫀 Mobile 2 — Endurance'
+                    : '🔄 Mode découverte';
+  document.getElementById('sessionWodBanner').innerHTML = `
+    <div class="flex-between">
+      <div>
+        <div style="font-weight:800;font-size:1rem;">${w.type} · ${w.duration} min</div>
+        <div style="font-size:.76rem;color:var(--text2);margin-top:2px;">${mobileLabel} · ${(w.exercises||[]).length} exercices</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:.68rem;color:var(--text2);">⚖️ Juge</div>
+        <div style="font-weight:700;font-size:.9rem;color:var(--accent);">${judgeName}</div>
+      </div>
+    </div>`;
+
+  // ── Exercise trackers ──
+  window._sessionJudge = {};
+  document.getElementById('sessionExercises').innerHTML = (w.exercises || []).map(ex => {
+    const sk = SKILLS_DATA.find(s => s.id === ex.skillId);
+    if (!sk) return '';
+    window._sessionJudge[ex.skillId] = { valid: 0, norep: 0 };
+    state.currentSession.exerciseLevels[ex.skillId] = ex.level;
+    const lvlObj = sk.levels.find(l => l.level === ex.level) || sk.levels[0];
+    const lvlDesc = getLevelDesc(lvlObj, getGender());
+    const lvlColors = { 1:'var(--green)', 2:'var(--yellow)', 3:'var(--accent)', 4:'var(--accent2)' };
+    return `
+    <div class="exercise-tracker" id="tracker-${ex.skillId}">
+
+      <!-- Nom + objectif -->
+      <div class="flex-between" style="margin-bottom:8px;">
+        <div style="font-weight:800;font-size:.98rem;">${sk.emoji} ${sk.name}</div>
+        <div style="font-size:.72rem;color:var(--text2);">🎯 ${w.reps||10} rép / round</div>
+      </div>
+
+      <!-- Niveau modifiable -->
+      <div style="display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:10px;">
+        <span style="font-size:.68rem;color:var(--text2);flex-shrink:0;">NIVEAU</span>
+        <button class="round-btn round-minus" style="width:32px;height:32px;font-size:.95rem;flex-shrink:0;" onclick="changeLevel('${ex.skillId}',-1)">▼</button>
+        <div style="flex:1;text-align:center;">
+          <div id="lvl-${ex.skillId}" style="font-size:1rem;font-weight:800;color:${lvlColors[ex.level]||'var(--accent)'};">Niv. ${ex.level}</div>
+          <div id="lvlDesc-${ex.skillId}" style="font-size:.65rem;color:var(--text2);line-height:1.3;margin-top:1px;">${lvlDesc}</div>
+        </div>
+        <button class="round-btn round-plus" style="width:32px;height:32px;font-size:.95rem;flex-shrink:0;" onclick="changeLevel('${ex.skillId}',1)">▲</button>
+      </div>
+
+      <!-- VALID / NO REP -->
+      <div class="judge-panel">
+        <button class="judge-btn btn-valid" onclick="sessionJudgeRep('${ex.skillId}','valid')">
+          <span class="jcount" id="sj-valid-${ex.skillId}">0</span>
+          <span class="jlabel">✅ VALIDE</span>
+        </button>
+        <button class="judge-btn btn-norep" onclick="sessionJudgeRep('${ex.skillId}','norep')">
+          <span class="jcount" id="sj-norep-${ex.skillId}">0</span>
+          <span class="jlabel">❌ NO REP</span>
+        </button>
+      </div>
+      <div class="judge-score">
+        <div style="text-align:center;">
+          <div class="score-valid" id="sj-total-${ex.skillId}">0</div>
+          <div class="score-label">Rép valides</div>
+        </div>
+        <div style="color:var(--border);">|</div>
+        <div style="text-align:center;">
+          <div class="score-norep" id="sj-nrtotal-${ex.skillId}">0</div>
+          <div class="score-label">No reps</div>
+        </div>
+        <div style="color:var(--border);">|</div>
+        <div style="text-align:center;">
+          <div style="font-weight:800;font-size:1rem;color:var(--text2);" id="sj-pct-${ex.skillId}">—</div>
+          <div class="score-label">% validité</div>
+        </div>
+      </div>
+
+      <!-- Rounds complets -->
+      <div class="round-counter" style="margin-top:9px;">
+        <button class="round-btn round-minus" onclick="changeRound('${ex.skillId}',-1)">−</button>
+        <div class="round-count" id="rc-${ex.skillId}">0</div>
+        <button class="round-btn round-plus" onclick="changeRound('${ex.skillId}',1)">+</button>
+        <span style="font-size:.72rem;color:var(--text2);">rounds complets</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Reset timers ──
+  resetTimer();
+  setupIntervalTimer(w.type, w);
+}
+
+function sessionJudgeRep(skillId, type) {
+  if (!window._sessionJudge) window._sessionJudge = {};
+  if (!window._sessionJudge[skillId]) window._sessionJudge[skillId] = {valid:0, norep:0};
+  if (type === 'valid') window._sessionJudge[skillId].valid++;
+  else window._sessionJudge[skillId].norep++;
+  const v = window._sessionJudge[skillId].valid;
+  const n = window._sessionJudge[skillId].norep;
+  const total = v + n;
+  const setT = (id, val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
+  setT('sj-valid-'+skillId, v);
+  setT('sj-norep-'+skillId, n);
+  setT('sj-total-'+skillId, v);
+  setT('sj-nrtotal-'+skillId, n);
+  setT('sj-pct-'+skillId, total>0 ? Math.round(v/total*100)+'%' : '—');
+  // Store in current session
+  if (state.currentSession) {
+    if (!state.currentSession.judgeData) state.currentSession.judgeData = {};
+    state.currentSession.judgeData[skillId] = {valid:v, norep:n};
+  }
+}
+
+function changeLevel(skillId, delta) {
+  if (!state.currentSession) return;
+  const sk = SKILLS_DATA.find(s => s.id === skillId);
+  if (!sk) return;
+  const cur = state.currentSession.exerciseLevels[skillId] || 1;
+  const next = Math.max(1, Math.min(sk.levels.length, cur + delta));
+  state.currentSession.exerciseLevels[skillId] = next;
+  const lvl = sk.levels.find(l=>l.level===next);
+  const el = document.getElementById('lvl-'+skillId);
+  const desc = document.getElementById('lvlDesc-'+skillId);
+  if (el) el.textContent = 'Niv. ' + next;
+  if (desc && lvl) desc.textContent = getLevelDesc(lvl, getGender());
+  showToast(delta < 0 ? `⬇️ ${sk.name} → Niveau ${next}` : `⬆️ ${sk.name} → Niveau ${next}`);
+}
+
+function endSession() {
+  document.getElementById('sessionActive').style.display = 'none';
+  document.getElementById('sessionHistory').style.display = 'block';
+  stopTimer();
+  itState.running = false; clearInterval(itState.interval);
+}
+
+// ── RATING FLOW ──
+let selectedRatingValue = '';
+
+function openRatingModal() {
+  selectedRatingValue = '';
+  document.querySelectorAll('.rating-card').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('ratingAdvice').style.display = 'none';
+  document.getElementById('ratingConfirmBtn').style.display = 'none';
+  document.getElementById('ratingModal').classList.add('open');
+}
+
+function selectRating(value, card) {
+  selectedRatingValue = value;
+  document.querySelectorAll('.rating-card').forEach(c=>c.classList.remove('sel'));
+  card.classList.add('sel');
+  const advice = {
+    top: '🔥 Excellent ! Ton WOD est bien calibré. Tu peux maintenir ou légèrement augmenter l\'intensité la prochaine fois.',
+    bien:'👍 Bon entraînement ! Quelques petits ajustements pourraient optimiser ton intensité. Pense à consulter l\'onglet Analyse pour des suggestions.',
+    dur: '😅 C\'était difficile ! Pense à réduire les répétitions ou descendre d\'un niveau sur un exercice. Consulte l\'onglet Analyse pour annoter les modifications.',
+    trop:'😰 Le WOD était trop dur pour maintenir l\'intensité. Il faut revoir les paramètres. Va dans Analyse → Annotations pour noter les changements à faire.'
+  };
+  const adviceEl = document.getElementById('ratingAdvice');
+  adviceEl.style.display = 'block';
+  adviceEl.textContent = advice[value] || '';
+  document.getElementById('ratingConfirmBtn').style.display = 'block';
+}
+
+function saveSessionWithRating() {
+  if (!state.currentSession) return;
+  const s = state.currentSession;
+  s.time       = state.timerSeconds;
+  s.score      = parseInt(document.getElementById('sessionScore').value) || 0;
+  s.fc         = parseInt(document.getElementById('sessionFCMoy').value) || 0;
+  s.muscleFeel = document.getElementById('sessionMuscFeel').value;
+  s.comment    = document.getElementById('sessionComment').value.trim();
+  s.rating     = selectedRatingValue;
+  s.finalLevels = {...(s.exerciseLevels||{})};
+  if (!state.sessions) state.sessions = [];
+  state.sessions.unshift(s);
+  saveState();
+  closeModal('ratingModal');
+  showToast('✅ Séance enregistrée !');
+  endSession();
+  renderSessionsList();
+}
+
+// Keep legacy alias
+function saveSession() { openRatingModal(); }
+
+function changeRound(skillId, delta) {
+  if (!state.currentSession) return;
+  if (!state.currentSession.exerciseRounds[skillId]) state.currentSession.exerciseRounds[skillId] = 0;
+  state.currentSession.exerciseRounds[skillId] = Math.max(0, state.currentSession.exerciseRounds[skillId] + delta);
+  const el = document.getElementById('rc-'+skillId);
+  if (el) el.textContent = state.currentSession.exerciseRounds[skillId];
+}
+
+function selectEffort(val, btn) {
+  state.sessionEffort = val;
+  if (state.currentSession) state.currentSession.effort = val;
+  document.querySelectorAll('#sessionEffortScale .scale-btn').forEach(b=>b.className='scale-btn');
+  btn.classList.add(`a${val}`);
+}
+
+function renderSessionsList() {
+  const container = document.getElementById('sessionsList');
+  if (!state.sessions || !state.sessions.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:18px;font-size:.83rem;">Aucune séance enregistrée</div>'; return;
+  }
+  const ratingEmoji = { top:'🔥', bien:'👍', dur:'😅', trop:'😰' };
+  const ratingColors = { top:'var(--green)', bien:'var(--blue)', dur:'var(--yellow)', trop:'var(--accent2)' };
+  container.innerHTML = '<div class="card-title mt16">📋 Séances passées</div>' +
+  state.sessions.map((s,i) => {
+    const date = new Date(s.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const emoji = s.rating ? ratingEmoji[s.rating] : '';
+    const rColor = s.rating ? ratingColors[s.rating] : 'var(--accent)';
+    return `<div class="session-list-item" onclick="showSessionDetail(${i})">
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:.88rem;">${s.wod?s.wod.type:'WOD'} — ${date} ${s.judgeName?`<span style="font-size:.7rem;color:var(--text3);">· Juge: ${s.judgeName}</span>`:''}</div>
+        <div style="font-size:.7rem;color:var(--text2);">⏱ ${formatTime(s.time||0)} · ${s.wod&&s.wod.exercises?s.wod.exercises.length:0} ex · Effort ${s.effort||'?'}/5${s.fc?` · 🫀${s.fc}bpm`:''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+        <div style="font-size:1.1rem;font-weight:800;color:${rColor};">${s.score||0}</div>
+        ${emoji?`<div style="font-size:1rem;">${emoji}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showSessionDetail(idx) {
+  const s = state.sessions[idx];
+  if (!s) return;
+  const date = new Date(s.date).toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});
+  const muscles = [];
+  if (s.wod && s.wod.exercises) s.wod.exercises.forEach(ex => { const sk = SKILLS_DATA.find(x=>x.id===ex.skillId); if(sk) muscles.push(...sk.muscles); });
+  const ratingMap = { top:'🔥 Top !', bien:'👍 Bien', dur:'😅 Difficile', trop:'😰 Trop dur' };
+  const ratingColors = { top:'var(--green)', bien:'var(--blue)', dur:'var(--yellow)', trop:'var(--accent2)' };
+  const gender = getGender();
+  document.getElementById('detailModalTitle').textContent = `Séance du ${date}`;
+  document.getElementById('sessionDetailContent').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb8"><span>⏱ Durée</span><b>${formatTime(s.time||0)}</b></div>
+      <div class="flex-between mb8"><span>🏆 Score</span><b style="color:var(--accent)">${s.score||0} rounds</b></div>
+      <div class="flex-between mb8"><span>💪 Effort ressenti</span><b>${s.effort||'?'}/5</b></div>
+      ${s.fc?`<div class="flex-between mb8"><span>🫀 FC moyenne</span><b>${s.fc} bpm</b></div>`:''}
+      ${s.judgeName?`<div class="flex-between mb8"><span>⚖️ Juge</span><b style="color:var(--accent)">${s.judgeName}</b></div>`:''}
+      ${s.rating?`<div class="flex-between"><span>Ressenti global</span><b style="color:${ratingColors[s.rating]||'var(--text)'}">${ratingMap[s.rating]||s.rating}</b></div>`:''}
+    </div>
+    ${s.wod&&s.wod.exercises?`<div class="card"><div class="card-title">🏋️ Exercices & Juge</div>${s.wod.exercises.map(ex=>{
+      const sk = SKILLS_DATA.find(x=>x.id===ex.skillId);
+      const r  = s.exerciseRounds && s.exerciseRounds[ex.skillId];
+      const jd = s.judgeData && s.judgeData[ex.skillId];
+      const fl = s.finalLevels && s.finalLevels[ex.skillId];
+      const lvlChanged = fl && fl !== ex.level;
+      const lvl = sk && sk.levels.find(l=>l.level===(fl||ex.level));
+      return `<div style="padding:7px 0;border-bottom:1px solid var(--border);">
+        <div class="flex-between" style="font-size:.83rem;">
+          <span style="font-weight:600;">${sk?sk.emoji+' '+sk.name:ex.skillId}</span>
+          <b>${r||0} rounds</b>
+        </div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:2px;">
+          Niv. ${fl||ex.level}${lvlChanged?` <span style="color:var(--yellow);">(départ ${ex.level}→fin ${fl})</span>`:''}
+          ${lvl?' — '+getLevelDesc(lvl,gender).substring(0,30):''}
+        </div>
+        ${jd?`<div style="display:flex;gap:8px;margin-top:3px;font-size:.72rem;">
+          <span style="color:var(--green);">✅ ${jd.valid} valides</span>
+          <span style="color:var(--accent2);">❌ ${jd.norep} no rep</span>
+          ${jd.valid+jd.norep>0?`<span style="color:var(--text3);">${Math.round(jd.valid/(jd.valid+jd.norep)*100)}% validité</span>`:''}
+        </div>`:''}
+      </div>`;
+    }).join('')}</div>`:''}
+    ${[...new Set(muscles)].length?`<div class="card"><div class="card-title">💪 Muscles</div><div class="muscles-list">${[...new Set(muscles)].map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div></div>`:''}
+    ${s.comment?`<div class="card"><div class="card-title">💬 Commentaire</div><p style="font-size:.82rem;color:var(--text2);font-style:italic;line-height:1.5;">"${s.comment}"</p></div>`:''}`;
+  document.getElementById('sessionDetailModal').classList.add('open');
+}
+
+// ════════════════════════════════════════
+//  TIMER — GLOBAL SESSION
+// ════════════════════════════════════════
+function toggleTimer() {
+  if (state.timerRunning) { stopTimer(); document.getElementById('timerBtn').innerHTML = '▶️ Start'; }
+  else { startTimer(); document.getElementById('timerBtn').innerHTML = '⏸️ Pause'; }
+}
+function startTimer() {
+  state.timerRunning = true;
+  state.timerInterval = setInterval(() => {
+    state.timerSeconds++;
+    document.getElementById('sessionTimerDisplay').textContent = formatTime(state.timerSeconds);
+  }, 1000);
+}
+function stopTimer() { state.timerRunning = false; clearInterval(state.timerInterval); }
+function resetTimer() {
+  stopTimer(); state.timerSeconds = 0;
+  document.getElementById('sessionTimerDisplay').textContent = '00:00';
+  document.getElementById('timerBtn').innerHTML = '▶️ Start';
+}
+
+// ════════════════════════════════════════
+//  INTERVAL TIMER (TABATA / EMOM / E2MOM)
+// ════════════════════════════════════════
+let itState = { running:false, phase:'effort', remaining:0, totalTime:0, round:1, totalRounds:0, effortTime:0, restTime:0, interval:null, type:'' };
+
+const IT_LABELS = {
+  effort: { text:'⚡ EFFORT', cssClass:'it-effort' },
+  rest:   { text:'😮‍💨 REPOS',  cssClass:'it-rest'   },
+  ready:  { text:'PRÊT',     cssClass:'it-ready'  }
+};
+
+function setupIntervalTimer(wodType, w) {
+  const block = document.getElementById('intervalTimerBlock');
+  if (!block) return;
+
+  // Stop any running interval
+  itState.running = false;
+  clearInterval(itState.interval);
+  itState.type = wodType;
+
+  if (wodType === 'TABATA') {
+    block.style.display = 'block';
+    itState.effortTime  = w.effortTime || 20;
+    itState.restTime    = w.rest || 10;
+    itState.totalRounds = w.rounds || 8;
+    itState.round       = 1;
+    itState.phase       = 'effort';
+    itState.remaining   = itState.effortTime;
+    itState.totalTime   = itState.effortTime;
+    document.getElementById('itStartBtn').innerHTML = '▶️ Lancer TABATA';
+
+  } else if (wodType === 'EMOM') {
+    block.style.display = 'block';
+    itState.effortTime  = w.effortTime || 40;
+    itState.restTime    = Math.max(1, 60 - itState.effortTime);
+    itState.totalRounds = w.rounds || 10;
+    itState.round       = 1;
+    itState.phase       = 'effort';
+    itState.remaining   = 60;
+    itState.totalTime   = 60;
+    document.getElementById('itStartBtn').innerHTML = '▶️ Lancer EMOM';
+
+  } else if (wodType === 'E2MOM') {
+    block.style.display = 'block';
+    itState.effortTime  = w.effortTime || 90;
+    itState.restTime    = Math.max(1, 120 - itState.effortTime);
+    itState.totalRounds = w.rounds || 10;
+    itState.round       = 1;
+    itState.phase       = 'effort';
+    itState.remaining   = 120;
+    itState.totalTime   = 120;
+    document.getElementById('itStartBtn').innerHTML = '▶️ Lancer E2MOM';
+
+  } else {
+    // AMRAP / FOR TIME — show simple block with rest info if applicable
+    if (w.rest && w.rest > 0) {
+      block.style.display = 'block';
+      itState.effortTime  = 0;
+      itState.restTime    = w.rest;
+      itState.totalRounds = w.rounds || 5;
+      itState.round       = 1;
+      itState.phase       = 'effort';
+      itState.remaining   = w.rest;
+      itState.totalTime   = w.rest;
+      document.getElementById('itStartBtn').innerHTML = `▶️ Chrono repos (${w.rest}s)`;
+    } else {
+      block.style.display = 'none';
+    }
+  }
+
+  if (block.style.display !== 'none') {
+    updateItDisplay();
+  }
+}
+
+function toggleIntervalTimer() {
+  if (itState.running) {
+    itState.running = false;
+    clearInterval(itState.interval);
+    document.getElementById('itStartBtn').innerHTML = '▶️ Reprendre';
+  } else {
+    itState.running = true;
+    itState.interval = setInterval(tickInterval, 1000);
+    document.getElementById('itStartBtn').innerHTML = '⏸️ Pause';
+    // Also start global timer if not running
+    if (!state.timerRunning) { startTimer(); document.getElementById('timerBtn').innerHTML = '⏸️ Pause'; }
+  }
+}
+
+function tickInterval() {
+  itState.remaining--;
+
+  if (itState.remaining < 0) itState.remaining = 0;
+
+  if (itState.type === 'TABATA') {
+    if (itState.remaining <= 0) {
+      if (itState.phase === 'effort') {
+        // Switch to rest
+        itState.phase = 'rest';
+        itState.remaining = itState.restTime;
+        itState.totalTime  = itState.restTime;
+      } else {
+        // End of rest → next round
+        itState.round++;
+        if (itState.round > itState.totalRounds) { finishIntervalTimer(); return; }
+        itState.phase = 'effort';
+        itState.remaining = itState.effortTime;
+        itState.totalTime  = itState.effortTime;
+      }
+      try { if (window.navigator.vibrate) window.navigator.vibrate([100, 50, 100]); } catch(e) {}
+    }
+
+  } else {
+    // EMOM (60s cycle) or E2MOM (120s cycle)
+    const cycleDur = itState.type === 'E2MOM' ? 120 : 60;
+    if (itState.remaining <= 0) {
+      // End of round
+      itState.round++;
+      if (itState.round > itState.totalRounds) { finishIntervalTimer(); return; }
+      itState.remaining = cycleDur;
+      itState.totalTime  = cycleDur;
+      itState.phase = 'effort';
+      try { if (window.navigator.vibrate) window.navigator.vibrate([200, 80, 200]); } catch(e) {}
+    } else {
+      // Determine phase by elapsed time in cycle
+      const elapsed = cycleDur - itState.remaining;
+      const wasPhase = itState.phase;
+      itState.phase = elapsed < itState.effortTime ? 'effort' : 'rest';
+      itState.totalTime = itState.phase === 'effort' ? itState.effortTime : itState.restTime;
+      // Vibrate on phase transition
+      if (wasPhase !== itState.phase) {
+        try { if (window.navigator.vibrate) window.navigator.vibrate([100, 50, 100]); } catch(e) {}
+      }
+    }
+  }
+
+  updateItDisplay();
+}
+
+function updateItDisplay() {
+  const phase  = itState.phase || 'effort';
+  const label  = IT_LABELS[phase] || IT_LABELS.effort;
+  const card   = document.getElementById('intervalTimerCard');
+  const phaseEl = document.getElementById('itPhase');
+  const cdEl   = document.getElementById('itCountdown');
+  const barEl  = document.getElementById('itBar');
+  const roundEl = document.getElementById('itRound');
+  if (!card) return;
+
+  card.className = 'interval-timer ' + label.cssClass;
+  if (phaseEl) phaseEl.textContent = label.text;
+  if (cdEl)   cdEl.textContent = formatTime(Math.max(0, itState.remaining));
+
+  // Progress bar: how much of the current phase is left
+  const pct = itState.totalTime > 0
+    ? Math.round(Math.max(0, itState.remaining) / itState.totalTime * 100)
+    : 100;
+  if (barEl) barEl.style.width = pct + '%';
+
+  // Round info line
+  let rLabel = '';
+  if (itState.type === 'TABATA') {
+    rLabel = `Série ${itState.round} / ${itState.totalRounds}  ·  ⚡ ${itState.effortTime}s effort  😮‍💨 ${itState.restTime}s repos`;
+  } else if (itState.type === 'EMOM') {
+    rLabel = `Round ${itState.round} / ${itState.totalRounds}  ·  1 min/round  ·  Effort ~${itState.effortTime}s → Repos ~${itState.restTime}s`;
+  } else if (itState.type === 'E2MOM') {
+    rLabel = `Round ${itState.round} / ${itState.totalRounds}  ·  2 min/round  ·  Effort ~${itState.effortTime}s → Repos ~${itState.restTime}s`;
+  } else {
+    rLabel = `Repos ${itState.restTime}s · Round ${itState.round} / ${itState.totalRounds}`;
+  }
+  if (roundEl) roundEl.textContent = rLabel;
+}
+
+function resetIntervalTimer() {
+  itState.running = false; clearInterval(itState.interval);
+  itState.round = 1; itState.phase = 'effort';
+  if (itState.type === 'TABATA') { itState.remaining = itState.effortTime; itState.totalTime = itState.effortTime; }
+  else { const c = itState.type==='E2MOM'?120:60; itState.remaining=c; itState.totalTime=c; }
+  document.getElementById('itStartBtn').innerHTML = '▶️ Lancer le chrono';
+  updateItDisplay();
+}
+
+function finishIntervalTimer() {
+  itState.running = false; clearInterval(itState.interval);
+  const card = document.getElementById('intervalTimerCard');
+  card.className = 'interval-timer it-ready';
+  document.getElementById('itPhase').textContent = '✅ TERMINÉ !';
+  document.getElementById('itCountdown').textContent = '00:00';
+  document.getElementById('itRound').textContent = `${itState.totalRounds} séries / rounds complétés`;
+  document.getElementById('itBar').style.width = '0%';
+  document.getElementById('itStartBtn').innerHTML = '▶️ Lancer le chrono';
+  showToast('🎉 WOD terminé !');
+  try { if (window.navigator.vibrate) window.navigator.vibrate([200,100,200,100,400]); } catch(e){}
+}
+function formatTime(s) { return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+
+// ════════════════════════════════════════
+//  FC ANALYSIS
+// ════════════════════════════════════════
+function getFCZone(fc, fcmax) {
+  const pct = (fc/fcmax)*100;
+  if (pct < 50) return { label:'Repos', color:'zone-repos', pct:2, desc:'En dessous de la zone d\'effort' };
+  if (pct < 65) return { label:'Échauffement', color:'zone-repos', pct:(pct-50)/50*28, desc:'Zone légère d\'échauffement' };
+  if (pct < 80) return { label:'Zone Endurance — Mobile 2', color:'zone-endurance', pct:28+(pct-65)/15*30, desc:'65–80% FCmax · Conversation possible par phrases courtes, effort maîtrisé' };
+  if (pct < 85) return { label:'Zone intermédiaire', color:'zone-aerob', pct:58+(pct-80)/5*14, desc:'80–85% FCmax · Zone de transition' };
+  if (pct < 95) return { label:'Zone Haute Intensité — Mobile 1', color:'zone-perf', pct:72+(pct-85)/10*22, desc:'85–95% FCmax · Respiration haletante, peu de parole possible, forte transpiration' };
+  return { label:'Zone Maximale', color:'zone-max', pct:97, desc:'Au-dessus de 95% FCmax — Très difficile à maintenir' };
+}
+
+function renderFCResult(fc, fcmax, containerId) {
+  const zone = getFCZone(fc, fcmax);
+  const pct = Math.round((fc/fcmax)*100);
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const mobile = state.profile && state.profile.mobile;
+  let advice = '';
+  if (mobile === 1) {
+    if (pct >= 85 && pct <= 95) advice = `<div style="color:var(--green);font-size:.78rem;margin-top:5px;">✅ Dans ta zone Mobile 1 !</div>`;
+    else if (pct < 85) advice = `<div style="color:var(--yellow);font-size:.78rem;margin-top:5px;">⬆️ Augmente l'intensité — Mobile 1 cible 85–95%</div>`;
+    else advice = `<div style="color:var(--accent2);font-size:.78rem;margin-top:5px;">⬇️ Réduis un peu — dépasse 95%</div>`;
+  } else if (mobile === 2) {
+    if (pct >= 65 && pct < 80) advice = `<div style="color:var(--green);font-size:.78rem;margin-top:5px;">✅ Dans ta zone Mobile 2 !</div>`;
+    else if (pct < 65) advice = `<div style="color:var(--yellow);font-size:.78rem;margin-top:5px;">⬆️ Augmente — Mobile 2 cible 65–80%</div>`;
+    else advice = `<div style="color:var(--accent2);font-size:.78rem;margin-top:5px;">⬇️ Réduis — dépasse 80%</div>`;
+  }
+  container.innerHTML = `<div style="margin-bottom:7px;"><div style="display:flex;justify-content:space-between;font-size:.76rem;color:var(--text2);margin-bottom:3px;"><span>FC : <b style="color:var(--text)">${fc} bpm</b></span><span>FCmax : <b style="color:var(--text)">${fcmax} bpm</b></span></div>
+    <div class="fc-zone-bar"><div class="fc-zone-needle" style="left:${Math.min(97,Math.max(2,zone.pct))}%"></div></div>
+    <div class="fc-zone-labels"><span>Repos</span><span>65%</span><span>80%</span><span>95%</span></div></div>
+  <div class="fc-zone-display ${zone.color}">
+    <div style="font-size:.93rem;">${zone.label}</div>
+    <div style="font-size:1.4rem;margin:3px 0;">${pct}% FCmax</div>
+    <div style="font-size:.76rem;opacity:.85;">${zone.desc}</div>${advice}
+  </div>`;
+}
+
+function analyzeFC() {
+  const age = parseInt(document.getElementById('fcAge').value) || (state.profile&&state.profile.age) || 17;
+  const fc = parseInt(document.getElementById('fcCurrent').value);
+  if (!fc) { showToast('⚠️ Entre ta FC', true); return; }
+  renderFCResult(fc, 220-age, 'fcZoneResult');
+}
+
+function analyzeFCFromSession() {
+  const age = (state.profile&&state.profile.age) || 17;
+  const fc = parseInt(document.getElementById('fcInput').value);
+  if (!fc) { showToast('⚠️ Entre ta FC', true); return; }
+  renderFCResult(fc, 220-age, 'fcSessionResult');
+}
+
+// ════════════════════════════════════════
+//  ANALYSIS
+// ════════════════════════════════════════
+function renderAnalysis() {
+  if (state.profile) document.getElementById('fcAge').value = state.profile.age || 17;
+  // Muscles
+  const mc = {};
+  Object.entries(state.skillLogs||{}).forEach(([id,logs]) => { if(logs.length) { const sk=SKILLS_DATA.find(s=>s.id===id); if(sk) sk.muscles.forEach(m=>{ mc[m]=(mc[m]||0)+logs.length; }); } });
+  if (state.wod&&state.wod.exercises) state.wod.exercises.forEach(ex => { const sk=SKILLS_DATA.find(s=>s.id===ex.skillId); if(sk) sk.muscles.forEach(m=>{ mc[m]=(mc[m]||0)+2; }); });
+  const mEntries = Object.entries(mc).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const mMax = mEntries[0]?mEntries[0][1]:1;
+  document.getElementById('muscleAnalysis').innerHTML = mEntries.length ? `<div class="bar-chart">${mEntries.map(([m,c])=>`<div class="bar-row"><div class="bar-label">${m}</div><div class="bar-track"><div class="bar-fill bar-muscle" style="width:${Math.round(c/mMax*100)}%">${c}</div></div></div>`).join('')}</div>` : '<div style="color:var(--text3);font-size:.83rem;text-align:center;padding:16px;">Teste des exercices pour voir l\'analyse</div>';
+  // Families
+  const fc = {force:0,explosivite:0,cardio:0,resistance:0};
+  if (state.wod&&state.wod.exercises) state.wod.exercises.forEach(ex => { const sk=SKILLS_DATA.find(s=>s.id===ex.skillId); if(sk&&fc.hasOwnProperty(sk.family)) fc[sk.family]++; });
+  const ftot = Object.values(fc).reduce((a,b)=>a+b,0)||1;
+  const bCls = {force:'bar-force',explosivite:'bar-explosivite',cardio:'bar-cardio',resistance:'bar-resistance'};
+  document.getElementById('familyAnalysis').innerHTML = `<div class="bar-chart">${Object.entries(fc).map(([f,c])=>`<div class="bar-row"><div class="bar-label" style="font-size:.68rem;">${FAMILY_LABELS[f]}</div><div class="bar-track"><div class="bar-fill ${bCls[f]}" style="width:${c?Math.round(c/ftot*100):0}%">${c}</div></div></div>`).join('')}</div><div style="font-size:.73rem;color:var(--text2);margin-top:7px;">📋 Bac : haut corps + bas corps + abdo + cardio</div>`;
+  // Bac
+  if (!state.wod) { document.getElementById('bacAnalysis').innerHTML = '<div style="color:var(--text3);font-size:.83rem;">Construis ton WOD d\'abord</div>'; return; }
+  const w = state.wod;
+  const families = [...new Set((w.exercises||[]).map(ex=>{const s=SKILLS_DATA.find(x=>x.id===ex.skillId);return s?s.family:'';}).filter(Boolean))];
+  const checks = [
+    {ok:w.exercises&&w.exercises.length>=4,label:`${w.exercises?w.exercises.length:0}/4 exercices min.`},
+    {ok:families.some(f=>['force','explosivite'].includes(f)),label:'Haut/bas du corps'},
+    {ok:families.includes('resistance'),label:'Abdominaux/Core'},
+    {ok:families.includes('cardio'),label:'Cardio'},
+    {ok:w.duration>=16&&w.duration<=20,label:`Durée ${w.duration}min (16–20 requis)`},
+    {ok:families.length>=3,label:`${families.length} familles de mouvements`}
+  ];
+  const sc = checks.filter(c=>c.ok).length;
+  document.getElementById('bacAnalysis').innerHTML = `<div style="display:flex;align-items:center;gap:11px;margin-bottom:11px;"><div style="font-size:2.3rem;font-weight:800;color:${sc===checks.length?'var(--green)':sc>3?'var(--yellow)':'var(--accent)'};">${sc}/${checks.length}</div><div style="font-size:.83rem;color:var(--text2);">critères Bac validés</div></div>${checks.map(c=>`<div class="validation-item ${c.ok?'v-ok':'v-warn'}">${c.ok?'✅':'⚠️'} ${c.label}</div>`).join('')}`;
+  // Annotations block
+  renderWodAnnotations();
+}
+
+// ════════════════════════════════════════
+//  WOD ANNOTATIONS
+// ════════════════════════════════════════
+function renderWodAnnotations() {
+  const container = document.getElementById('wodAnnotationsBlock');
+  if (!container) return;
+  if (!state.wod || !state.wod.exercises) {
+    container.innerHTML = ''; return;
+  }
+  const w = state.wod;
+  const annotations = state.wodAnnotations || {};
+  const gender = getGender();
+  // Last session rating if any
+  const lastSess = state.sessions && state.sessions[0];
+  const ratingMap = { top:'🔥 Top !', bien:'👍 Bien', dur:'😅 Difficile', trop:'😰 Trop dur' };
+  const ratingColors = { top:'var(--green)', bien:'var(--blue)', dur:'var(--yellow)', trop:'var(--accent2)' };
+  let ratingHtml = '';
+  if (lastSess && lastSess.rating) {
+    ratingHtml = `<div style="padding:8px 12px;background:rgba(0,0,0,.2);border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:${ratingColors[lastSess.rating]||'var(--text)'};">${ratingMap[lastSess.rating]||lastSess.rating} <span style="font-weight:400;color:var(--text2);">— dernière séance</span></div>`;
+  }
+  container.innerHTML = `
+  <div class="card" style="border-color:rgba(255,212,59,.3);">
+    <div class="card-title">✏️ Mon WOD & Annotations
+      <span style="font-size:.7rem;font-weight:400;color:var(--text3);">Les annotations ne modifient pas ton WOD</span>
+    </div>
+    ${ratingHtml ? `<div style="margin-bottom:12px;">${ratingHtml}</div>` : ''}
+
+    <div class="anno-general">
+      <div style="font-size:.78rem;font-weight:700;margin-bottom:6px;color:var(--yellow);">📝 Note générale sur ce WOD</div>
+      <textarea class="anno-input" id="anno-global" rows="2"
+        placeholder="Ex : Augmenter la durée à 20min · Changer le type AMRAP → EMOM · FC trop basse..."
+        oninput="saveAnnotation('global',this.value)">${annotations['global']||''}</textarea>
+    </div>
+
+    ${w.exercises.map((ex, i) => {
+      const sk = SKILLS_DATA.find(s=>s.id===ex.skillId);
+      if (!sk) return '';
+      const lvl = sk.levels.find(l=>l.level===ex.level);
+      const lastSessEx = lastSess && lastSess.finalLevels && lastSess.finalLevels[ex.skillId];
+      const judgeData = lastSess && lastSess.judgeData && lastSess.judgeData[ex.skillId];
+      const levelChanged = lastSessEx && lastSessEx !== ex.level;
+      return `<div class="anno-ex-card">
+        <div class="anno-ex-header">
+          <div>
+            <span style="font-weight:700;">${sk.emoji} ${sk.name}</span>
+            <span style="font-size:.7rem;color:var(--text2);margin-left:6px;">Niv. ${ex.level} — ${getLevelDesc(lvl||sk.levels[0], gender).substring(0,32)}</span>
+          </div>
+          ${levelChanged ? `<span class="anno-tag">Niv modifié → ${lastSessEx}</span>` : ''}
+        </div>
+        ${judgeData ? `<div style="display:flex;gap:10px;margin-bottom:7px;font-size:.73rem;">
+          <span style="color:var(--green);">✅ ${judgeData.valid} valides</span>
+          <span style="color:var(--accent2);">❌ ${judgeData.norep} no rep</span>
+          ${judgeData.valid+judgeData.norep>0?`<span style="color:var(--text3);">${Math.round(judgeData.valid/(judgeData.valid+judgeData.norep)*100)}% validité</span>`:''}
+        </div>` : ''}
+        <textarea class="anno-input" id="anno-${ex.skillId}" rows="2"
+          placeholder="Ex : Passer à 50 rép pour augmenter FC · Trop dur → descendre Niv 2 · Bon exercice à conserver..."
+          oninput="saveAnnotation('${ex.skillId}',this.value)">${annotations[ex.skillId]||''}</textarea>
+      </div>`;
+    }).join('')}
+
+    <div style="font-size:.72rem;color:var(--text3);margin-top:8px;text-align:center;">
+      💡 Tes annotations sont sauvegardées automatiquement et ne modifient pas ton WOD Bac
+    </div>
+  </div>`;
+}
+
+function saveAnnotation(key, value) {
+  if (!state.wodAnnotations) state.wodAnnotations = {};
+  state.wodAnnotations[key] = value;
+  saveState(); // auto-save
+}
+function renderBilan() {
+  const container = document.getElementById('bilanContent');
+  if (!state.profile) { container.innerHTML = `<div class="card text-center"><div style="font-size:2rem;">👤</div><div style="font-weight:700;margin:9px 0;">Configure ton profil</div><button class="btn btn-primary mt8" onclick="showSection('profil')">Aller au profil</button></div>`; return; }
+  const p = state.profile;
+  const sessions = state.sessions || [];
+  const fcmax = 220-(p.age||17);
+  const aflParts = (p.aflChoice||'4-4').split('-');
+  const afl2 = parseInt(aflParts[0])||4, afl3 = parseInt(aflParts[1])||4;
+  const totalS = sessions.length;
+  const avgScore = totalS ? Math.round(sessions.reduce((a,s)=>a+(s.score||0),0)/totalS) : 0;
+  const tested = Object.keys(state.skillLogs||{}).filter(id=>(state.skillLogs[id]||[]).length>0).length;
+
+  container.innerHTML = `
+  <div class="afl-section">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:11px;">
+      <div style="font-size:2.3rem;">${p.mobile===1?'⚡':p.mobile===2?'🫀':'🏋️'}</div>
+      <div>
+        <div style="font-size:1.15rem;font-weight:800;">${p.prenom} ${p.nom}</div>
+        <div style="font-size:.82rem;color:var(--text2);">${p.classe}${p.mobile?` · Mobile ${p.mobile===1?'1 — Explosivité':'2 — Endurance'}`:''}</div>
+        <div style="font-size:.76rem;color:var(--text3);">FCmax = 220 − ${p.age||17} = <b style="color:var(--accent)">${fcmax} bpm</b></div>
+      </div>
+    </div>
+    <div class="progress-stat">
+      <div class="stat-box"><div class="stat-value">${totalS}</div><div class="stat-label">Séances</div></div>
+      <div class="stat-box"><div class="stat-value">${tested}</div><div class="stat-label">Skills testés</div></div>
+      <div class="stat-box"><div class="stat-value">${avgScore}</div><div class="stat-label">Score moyen</div></div>
+      <div class="stat-box"><div class="stat-value">${state.wod?'✅':'—'}</div><div class="stat-label">WOD construit</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🎓 Barème Bac EPS — Cross Training</div>
+    <div class="afl-section">
+      <div class="afl-title">AFL 1 — Produire & Analyser · <span style="color:var(--accent)">12 pts</span></div>
+      <div class="afl-subtitle">Évalué le jour de l'épreuve (WOD 16–20 min)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+        <div style="padding:8px;background:var(--bg3);border-radius:7px;"><div style="color:var(--text2);font-size:.72rem;">PRODUIRE</div><div style="font-size:1.2rem;font-weight:800;color:var(--accent);">8 pts</div><div style="font-size:.7rem;color:var(--text2);margin-top:3px;">S'engager dans l'intensité du mobile, maintenir, mouvements maîtrisés</div></div>
+        <div style="padding:8px;background:var(--bg3);border-radius:7px;"><div style="color:var(--text2);font-size:.72rem;">ANALYSER</div><div style="font-size:1.2rem;font-weight:800;color:var(--accent);">4 pts</div><div style="font-size:.7rem;color:var(--text2);margin-top:3px;">Mettre en relation données & ressentis pour réguler</div></div>
+      </div>
+    </div>
+    <div class="afl-section">
+      <div class="afl-title">AFL 2 — S'entraîner · <span style="color:var(--blue)">${p.aflChoice?afl2+'pts':'?pts'}</span></div>
+      <div class="afl-subtitle">Évalué au fil de la séquence — Carnet essentiel</div>
+      ${p.aflChoice?`<div style="font-size:.78rem;color:var(--text2);">Répartition choisie : <b>${p.aflChoice}</b></div>`:'<div style="font-size:.78rem;color:var(--yellow);">⚠️ Répartition non choisie — voir onglet Profil</div>'}
+    </div>
+    <div class="afl-section">
+      <div class="afl-title">AFL 3 — Coopérer · <span style="color:var(--green)">${p.aflChoice?afl3+'pts':'?pts'}</span></div>
+      <div class="afl-subtitle">Rôle de coach et observateur</div>
+    </div>
+  </div>
+  ${state.wod?`<div class="card"><div class="card-title">🏗️ Mon WOD — ${state.wod.type}</div><div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px;"><span class="chip">⏱ ${state.wod.duration}min</span><span class="chip">🔄 ${state.wod.rounds} rounds</span><span class="chip">💪 ${state.wod.exercises?state.wod.exercises.length:0} ex</span></div>${(state.wod.exercises||[]).map(ex=>{const sk=SKILLS_DATA.find(s=>s.id===ex.skillId);return`<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:.83rem;display:flex;justify-content:space-between;"><span>${sk?sk.emoji+' '+sk.name:ex.skillId}</span><span style="color:var(--text2);">Niv.${ex.level} · ${state.wod.reps}rép</span></div>`;}).join('')}</div>`:''}
+  <div class="card"><div class="card-title">🫀 Zones FC (${p.age||17} ans)</div>
+    <div style="font-size:.82rem;line-height:2;">
+      <div class="flex-between" style="border-bottom:1px solid var(--border);padding:5px 0;"><span style="color:var(--accent);">⚡ Mobile 1 (Performance)</span><b>${Math.round(fcmax*.85)}–${Math.round(fcmax*.95)} bpm</b></div>
+      <div class="flex-between" style="padding:5px 0;"><span style="color:var(--blue);">🫀 Mobile 2 (Endurance)</span><b>${Math.round(fcmax*.65)}–${Math.round(fcmax*.80)} bpm</b></div>
+    </div>
+  </div>
+  ${totalS>0?`<div class="card"><div class="card-title">📈 Progression</div>${sessions.slice(0,6).reverse().map(s=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-size:.7rem;color:var(--text3);width:52px;">${new Date(s.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})}</span><div style="flex:1;background:var(--bg3);border-radius:3px;height:15px;overflow:hidden;"><div style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent3));width:${Math.min(100,(s.score||0)*5)}%;min-width:18px;display:flex;align-items:center;padding-left:5px;font-size:.62rem;font-weight:700;color:white;">${s.score||0}</div></div><span style="font-size:.7rem;color:var(--text2);">E${s.effort||'?'}</span></div>`).join('')}</div>`:''}
+  <div style="height:10px;"></div>`;
+}
+
+// ════════════════════════════════════════
+//  TEACHER SPACE
+// ════════════════════════════════════════
+function openTeacher() {
+  const overlay = document.getElementById('teacherOverlay');
+  const login   = document.getElementById('teacherLogin');
+  const dashboard = document.getElementById('teacherDashboard');
+
+  // Always show teacher overlay (z-index 9500 > session overlay 9000)
+  overlay.classList.add('open');
+
+  if (teacherLoggedIn) {
+    // Already authenticated — go straight to dashboard
+    login.style.display = 'none';
+    dashboard.style.display = 'block';
+    loadStudents();
+    loadPresence();
+    loadTeacherSessionCode();
+  } else {
+    // Show login screen — reset state
+    login.style.display = 'block';
+    dashboard.style.display = 'none';
+    const passInput = document.getElementById('teacherPass');
+    if (passInput) { passInput.value = ''; passInput.focus(); }
+  }
+}
+
+function closeTeacher() {
+  document.getElementById('teacherOverlay').classList.remove('open');
+  if (teacherListener) { teacherListener(); teacherListener = null; }
+}
+
+function checkTeacherPass() {
+  const pass = document.getElementById('teacherPass').value;
+  // Decode expected password from base64 for comparison — never stored or displayed in plain text in UI
+  const expected = atob(_TEACHER_PASS_B64);
+  if (pass === expected) {
+    teacherLoggedIn = true;
+    document.getElementById('teacherLogin').style.display = 'none';
+    document.getElementById('teacherDashboard').style.display = 'block';
+    loadStudents();
+    loadPresence();
+    loadTeacherSessionCode();
+  } else {
+    showToast('❌ Mot de passe incorrect', true);
+    const inp = document.getElementById('teacherPass');
+    inp.style.borderColor = 'var(--accent2)';
+    setTimeout(() => { inp.style.borderColor = ''; }, 2000);
+  }
+}
+
+function switchTeacherTab(tab, btn) {
+  document.querySelectorAll('.teacher-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const tabs = ['presence','eleves','stats','code','session'];
+  tabs.forEach(t => {
+    const el = document.getElementById('teacherTab'+t.charAt(0).toUpperCase()+t.slice(1));
+    if (el) el.style.display = t===tab ? 'block' : 'none';
+  });
+  if (tab==='stats')    renderTeacherStats();
+  if (tab==='presence') loadPresence();
+  if (tab==='code')     loadTeacherSessionCode();
+  if (tab==='session') {
+    const d = document.getElementById('teacherDateFilter');
+    if (d && !d.value) d.value = new Date().toISOString().split('T')[0];
+  }
+}
+
+function loadStudents() {
+  const container = document.getElementById('studentsList');
+  const db = getFbDb();
+  // Update teacher status banner
+  const statusEl = document.getElementById('fbTeacherStatusText');
+  if (!db) {
+    if (statusEl) { statusEl.parentElement.style.background='rgba(232,61,61,.08)'; statusEl.parentElement.style.borderColor='rgba(232,61,61,.3)'; statusEl.parentElement.style.color='var(--accent2)'; statusEl.textContent='Firebase indisponible — vérifie la connexion'; }
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:.82rem;">Connexion Firebase impossible</div>';
+    return;
+  }
+  if (statusEl) statusEl.textContent = 'Connecté • Écoute en temps réel active';
+
+  container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:.82rem;"><span class="live-dot"></span>Chargement...</div>';
+
+  if (teacherListener) teacherListener();
+  teacherListener = db.collection('crosstraining_students').onSnapshot(snapshot => {
+    allStudentsData = [];
+    snapshot.forEach(doc => allStudentsData.push({ id:doc.id, ...doc.data() }));
+    allStudentsData.sort((a,b) => ((a.profile&&a.profile.nom)||a.id).localeCompare((b.profile&&b.profile.nom)||b.id));
+    renderStudentsList(allStudentsData);
+  }, err => {
+    container.innerHTML = `<div style="color:var(--accent2);padding:12px;font-size:.82rem;">❌ ${err.message}</div>`;
+  });
+}
+
+function filterStudents(query) {
+  if (!query.trim()) { renderStudentsList(allStudentsData); return; }
+  const q = query.toLowerCase();
+  const filtered = allStudentsData.filter(s => {
+    const name = `${s.profile&&s.profile.prenom||''} ${s.profile&&s.profile.nom||''} ${s.profile&&s.profile.classe||''}`.toLowerCase();
+    return name.includes(q);
+  });
+  renderStudentsList(filtered);
+}
+
+function renderStudentsList(students) {
+  const container = document.getElementById('studentsList');
+  if (!students.length) { container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:.82rem;">Aucun élève synchronisé</div>'; return; }
+  const now = Date.now();
+  container.innerHTML = `<div style="font-size:.73rem;color:var(--text2);margin-bottom:9px;"><span class="live-dot"></span>${students.length} élève(s) synchronisé(s)</div>` +
+  students.map(s => {
+    const p = s.profile || {};
+    const syncDate = s.syncDate ? new Date(s.syncDate) : null;
+    const syncAgo = syncDate ? getTimeAgo(syncDate) : 'jamais';
+    const isRecent = syncDate && (now - syncDate.getTime()) < 3600000 * 2;
+    const mobileLabel = p.mobile===1?'⚡ M1':p.mobile===2?'🫀 M2':'';
+    const mobileClass = p.mobile===1?'mb-sport':p.mobile===2?'mb-endur':'mb-none';
+    return `<div class="student-card" onclick="showStudentDetail('${s.id}')">
+      <div class="student-card-header">
+        <div>
+          <div class="student-name">${p.prenom||'?'} ${p.nom||'?'}</div>
+          <div class="student-class">${p.classe||'—'}</div>
+        </div>
+        ${mobileLabel?`<span class="student-mobile-badge ${mobileClass}">${mobileLabel}</span>`:''}
+      </div>
+      <div class="student-stats">
+        <span class="st-chip">📋 ${s.sessionCount||0} séances</span>
+        <span class="st-chip">🏋️ ${s.skillsTested||0} skills</span>
+        ${s.wod?`<span class="st-chip">✅ WOD: ${s.wod.type}</span>`:'<span class="st-chip" style="color:var(--yellow);">⚠️ WOD à construire</span>'}
+        ${p.aflChoice?`<span class="st-chip">AFL ${p.aflChoice}</span>`:''}
+      </div>
+      <div class="sync-time">${isRecent?`<span class="live-dot"></span>`:''}<span style="${isRecent?'color:var(--green)':''}">Sync ${syncAgo}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function showStudentDetail(studentId) {
+  const s = allStudentsData.find(x => x.id === studentId);
+  if (!s) return;
+  const p = s.profile || {};
+  const sessions = s.sessions || [];
+  const fcmax = 220 - (p.age || 17);
+
+  document.getElementById('studentDetailTitle').textContent = `${p.prenom||'?'} ${p.nom||'?'}`;
+  document.getElementById('studentDetailContent').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb8"><span style="color:var(--text2);">Classe</span><b>${p.classe||'—'}</b></div>
+      <div class="flex-between mb8"><span style="color:var(--text2);">Âge</span><b>${p.age||'—'} ans (FCmax ${fcmax} bpm)</b></div>
+      <div class="flex-between mb8"><span style="color:var(--text2);">Mobile</span><b>${p.mobile===1?'⚡ Mobile 1 — Explosivité':p.mobile===2?'🫀 Mobile 2 — Endurance':'Non choisi'}</b></div>
+      <div class="flex-between"><span style="color:var(--text2);">AFL</span><b>${p.aflChoice||'Non choisi'}</b></div>
+    </div>
+    <div class="progress-stat">
+      <div class="stat-box"><div class="stat-value">${s.sessionCount||0}</div><div class="stat-label">Séances</div></div>
+      <div class="stat-box"><div class="stat-value">${s.skillsTested||0}</div><div class="stat-label">Skills testés</div></div>
+    </div>
+    ${s.wod?`<div class="card"><div class="card-title">🏗️ WOD construit — ${s.wod.type}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;"><span class="chip">⏱ ${s.wod.duration}min</span><span class="chip">🔄 ${s.wod.rounds} rounds</span></div>
+      ${(s.wod.exercises||[]).map(ex=>{const sk=SKILLS_DATA.find(x=>x.id===ex.skillId);return`<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem;display:flex;justify-content:space-between;"><span>${sk?sk.emoji+' '+sk.name:ex.skillId}</span><span style="color:var(--text2);">Niv.${ex.level}</span></div>`;}).join('')}
+    </div>`:'<div class="card" style="border-color:var(--yellow);"><div style="color:var(--yellow);font-size:.85rem;">⚠️ Aucun WOD construit</div></div>'}
+    ${sessions.length?`<div class="card"><div class="card-title">📋 Dernières séances</div>
+      ${sessions.slice(0,5).map(sess=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:.8rem;">
+        <div class="flex-between"><span>${sess.wod?sess.wod.type:'WOD'} — ${new Date(sess.date).toLocaleDateString('fr-FR')}</span><b style="color:var(--accent);">${sess.score||0}</b></div>
+        <div style="color:var(--text2);font-size:.72rem;">⏱${formatTime(sess.time||0)} · Effort ${sess.effort||'?'}/5${sess.fc?` · 🫀${sess.fc}bpm`:''}</div>
+        ${sess.comment?`<div style="font-style:italic;color:var(--text3);font-size:.7rem;margin-top:2px;">"${sess.comment.substring(0,60)}..."</div>`:''}
+      </div>`).join('')}
+    </div>`:''}
+    ${Object.keys(s.skillLogs||{}).length?`<div class="card"><div class="card-title">📚 Skills enregistrés</div>
+      <div class="muscles-list">${Object.keys(s.skillLogs).filter(id=>(s.skillLogs[id]||[]).length>0).map(id=>{const sk=SKILLS_DATA.find(x=>x.id===id);return sk?`<span class="muscle-tag">${sk.emoji} ${sk.name}</span>`:'';}).filter(Boolean).join('')}</div>
+    </div>`:''}
+  `;
+  document.getElementById('studentDetailModal').classList.add('open');
+}
+
+function renderTeacherStats() {
+  const container = document.getElementById('teacherStatsContent');
+  if (!getFbDb() || !allStudentsData.length) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:.82rem;">Charge les élèves d\'abord (onglet Élèves)</div>'; return;
+  }
+  const total = allStudentsData.length;
+  const withWOD = allStudentsData.filter(s=>s.wod).length;
+  const mobile1 = allStudentsData.filter(s=>s.profile&&s.profile.mobile===1).length;
+  const mobile2 = allStudentsData.filter(s=>s.profile&&s.profile.mobile===2).length;
+  const noMobile = total - mobile1 - mobile2;
+  const avgSessions = total ? Math.round(allStudentsData.reduce((a,s)=>a+(s.sessionCount||0),0)/total) : 0;
+  const allClasses = [...new Set(allStudentsData.map(s=>s.profile&&s.profile.classe).filter(Boolean))];
+
+  container.innerHTML = `
+  <div class="progress-stat">
+    <div class="stat-box"><div class="stat-value">${total}</div><div class="stat-label">Élèves sync</div></div>
+    <div class="stat-box"><div class="stat-value">${withWOD}</div><div class="stat-label">WOD construits</div></div>
+    <div class="stat-box"><div class="stat-value">${avgSessions}</div><div class="stat-label">Séances moy.</div></div>
+    <div class="stat-box"><div class="stat-value">${allClasses.length}</div><div class="stat-label">Classes</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 Répartition des mobiles</div>
+    <div class="bar-chart">
+      <div class="bar-row"><div class="bar-label">⚡ Mobile 1</div><div class="bar-track"><div class="bar-fill bar-force" style="width:${total?Math.round(mobile1/total*100):0}%">${mobile1}</div></div></div>
+      <div class="bar-row"><div class="bar-label">🫀 Mobile 2</div><div class="bar-track"><div class="bar-fill bar-cardio" style="width:${total?Math.round(mobile2/total*100):0}%">${mobile2}</div></div></div>
+      <div class="bar-row"><div class="bar-label">— Non choisi</div><div class="bar-track"><div class="bar-fill bar-resistance" style="width:${total?Math.round(noMobile/total*100):0}%">${noMobile}</div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 WOD types utilisés</div>
+    <div class="bar-chart">${
+      (() => {
+        const wt = {};
+        allStudentsData.forEach(s => { if(s.wod) wt[s.wod.type] = (wt[s.wod.type]||0)+1; });
+        const max = Math.max(...Object.values(wt), 1);
+        const cols = ['bar-force','bar-explosivite','bar-cardio','bar-resistance','bar-muscle'];
+        return Object.entries(wt).map(([t,c],i) => `<div class="bar-row"><div class="bar-label">${t}</div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${Math.round(c/max*100)}%">${c}</div></div></div>`).join('');
+      })()
+    }</div>
+  </div>
+  ${allClasses.length?`<div class="card"><div class="card-title">🏫 Classes</div>${allClasses.map(cls=>{const classStudents=allStudentsData.filter(s=>s.profile&&s.profile.classe===cls);return`<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;font-size:.83rem;"><span>${cls}</span><span style="color:var(--text2);">${classStudents.length} élève(s) · ${classStudents.filter(s=>s.wod).length} WOD</span></div>`;}).join('')}</div>`:''}
+  `;
+}
+
+// ════════════════════════════════════════
+//  SÉANCE DU JOUR (enseignant)
+// ════════════════════════════════════════
+function filterByDate(dateStr) {
+  const container = document.getElementById('sessionDayContent');
+  if (!dateStr) { container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:.82rem;">Sélectionne une date</div>'; return; }
+  const target = dateStr; // YYYY-MM-DD
+  const matches = allStudentsData.filter(s => {
+    const sessions = s.sessions || [];
+    return sessions.some(sess => sess.date && sess.date.startsWith(target));
+  });
+  if (!matches.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3);font-size:.83rem;">Aucune séance enregistrée le ${new Date(target+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'})}</div>`;
+    return;
+  }
+  const dateLabel = new Date(target+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  container.innerHTML = `<div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:10px;">📅 ${dateLabel} — ${matches.length} élève(s)</div>` +
+  matches.map(s => {
+    const p = s.profile || {};
+    const todaySessions = (s.sessions||[]).filter(sess => sess.date && sess.date.startsWith(target));
+    return `<div class="student-card" style="margin-bottom:8px;" onclick="showStudentDetail('${s.id}')">
+      <div class="flex-between mb8">
+        <div><div class="student-name">${p.prenom||'?'} ${p.nom||'?'}</div><div class="student-class">${p.classe||'—'}</div></div>
+        <span class="student-mobile-badge ${p.mobile===1?'mb-sport':p.mobile===2?'mb-endur':'mb-none'}">${p.mobile===1?'⚡M1':p.mobile===2?'🫀M2':'—'}</span>
+      </div>
+      ${todaySessions.map(sess => `
+      <div style="background:var(--bg3);border-radius:7px;padding:8px;margin-top:6px;">
+        <div class="flex-between" style="font-size:.8rem;">
+          <b>${sess.wod?sess.wod.type:'WOD'}</b>
+          <span style="color:var(--accent);font-weight:800;">${sess.score||0} rounds</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:3px;">⏱ ${formatTime(sess.time||0)} · Effort ${sess.effort||'?'}/5${sess.fc?` · 🫀 ${sess.fc}bpm`:''}</div>
+        ${sess.comment?`<div style="font-size:.7rem;color:var(--text3);font-style:italic;margin-top:2px;">"${sess.comment.substring(0,60)}..."</div>`:''}
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════
+function getTimeAgo(date) {
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff/60000);
+  if (mins < 1) return 'à l\'instant';
+  if (mins < 60) return `il y a ${mins}min`;
+  const h = Math.floor(mins/60);
+  if (h < 24) return `il y a ${h}h`;
+  return `il y a ${Math.floor(h/24)}j`;
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError?'var(--accent2)':'var(--green)';
+  t.style.color = isError?'var(--accent2)':'var(--green)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+// ════════════════════════════════════════
+//  WOD RESTORE
+// ════════════════════════════════════════
+function restoreWOD() {
+  if (!state.wod||!state.wod.exercises) return;
+  const w = state.wod;
+  selectedWodType = w.type;
+  wodMobile = w.mobile || 0;
+
+  // Restore WOD type button
+  document.querySelectorAll('.wod-type-btn').forEach(b => {
+    if (b.querySelector('.wtn')&&b.querySelector('.wtn').textContent.trim()===w.type) b.classList.add('selected');
+  });
+  // Restore type info + params
+  const info = document.getElementById('wodTypeInfo');
+  if (info && WOD_TYPE_INFO[w.type]) { info.style.display='block'; info.textContent=WOD_TYPE_INFO[w.type]; }
+  const label = document.getElementById('wodParamsTypeLabel');
+  if (label) label.textContent = w.type;
+  renderWodParams(w.type);
+  // Fill restored values after render
+  setTimeout(() => {
+    const setV = (id, val) => { const el=document.getElementById(id); if(el&&val) el.value=val; };
+    setV('wodDuration', w.duration);
+    setV('wodRounds', w.rounds);
+    setV('wodReps', w.reps);
+    setV('wodRest', w.rest);
+    setV('wodEffortTime', w.effortTime);
+    if (w.type==='TABATA') updateTabataPreview();
+    if (w.type==='EMOM')   updateEmomPreview();
+    if (w.type==='E2MOM')  updateE2momPreview();
+  }, 50);
+
+  // Restore mobile
+  if (wodMobile) selectWodMobile(wodMobile);
+
+  // Restore exercise slots
+  wodExercises = Array(Math.max(4, w.exercises.length)).fill(null);
+  w.exercises.forEach((ex, i) => {
+    if (i >= 4) addWodSlot();
+    wodExercises[i] = ex;
+    const skill = SKILLS_DATA.find(s=>s.id===ex.skillId);
+    if (!skill) return;
+    const slot = document.getElementById('slot-'+i);
+    if (!slot) return;
+    slot.classList.add('filled');
+    slot.innerHTML = `
+      <div class="slot-number" style="background:var(--accent);color:white;">${i+1}</div>
+      <div class="slot-content">
+        <div style="font-weight:700;">${skill.emoji} ${skill.name}</div>
+        <div class="slot-detail" style="color:var(--accent);">
+          <b>Niveau ${ex.level}</b> — ${getLevelDesc(skill.levels.find(l=>l.level===ex.level)||skill.levels[0], getGender()).substring(0,36)}
+          <button style="background:none;border:none;color:var(--text3);font-size:.7rem;cursor:pointer;margin-left:4px;" onclick="event.stopPropagation();openLevelPicker(${i},'${ex.skillId}')" title="Changer">✏️</button>
+        </div>
+        <div class="slot-detail">${skill.muscles.slice(0,2).join(', ')}</div>
+      </div>
+      <div class="slot-remove" onclick="removeSlotExercise(${i},event)">✕</div>`;
+    slot.setAttribute('onclick','');
+  });
+  validateWOD();
+}
+
+// Mot de passe enseignant — encodé pour ne pas être lisible en clair
+const _TEACHER_PASS_B64 = 'ZXBzY3Jvc3N0cmFpbmluZw=='; // base64("epscrosstraining")
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+function init() {
+  loadState();
+  loadProfileForm();
+  updateStudentBadge();
+  renderSkills();
+  if (state.wod) restoreWOD();
+
+  // Pré-remplir date enseignant
+  const todayInput = document.getElementById('teacherDateFilter');
+  if (todayInput) todayInput.value = new Date().toISOString().split('T')[0];
+
+  // Firebase banner (delayed to let Firebase init)
+  setTimeout(() => updateSyncBanner(isFbReady()), 900);
+
+  // Modales — fermeture sur clic extérieur
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+  });
+  document.getElementById('teacherOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('teacherOverlay')) closeTeacher();
+  });
+
+  // Code de session — doit être validé avant d'accéder à l'app
+  initSessionCode();
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
